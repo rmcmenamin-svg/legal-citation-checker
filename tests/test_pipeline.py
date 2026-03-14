@@ -208,7 +208,7 @@ class TestVerificationDecisions:
         def error_http_get(*args: Any, **kwargs: Any) -> Tuple[None, None, str]:
             return None, None, "Connection timeout"
 
-        checker._http_get_json = error_http_get  # type: ignore[assignment]
+        checker._verifier._http_get_json = error_http_get  # type: ignore[assignment]
 
         decision = checker._verify_citation(citation)
         assert decision.status == "Needs Review"
@@ -221,7 +221,7 @@ class TestVerificationDecisions:
         def empty_http_get(*args: Any, **kwargs: Any) -> Tuple[Dict[str, Any], str, None]:
             return {"count": 0, "results": []}, "http://example.com", None
 
-        checker._http_get_json = empty_http_get  # type: ignore[assignment]
+        checker._verifier._http_get_json = empty_http_get  # type: ignore[assignment]
 
         decision = checker._verify_citation(citation)
         assert decision.status == "Potential Hallucination"
@@ -237,7 +237,7 @@ class TestVerificationDecisions:
                 "results": [{"citation": ["347 U.S. 483"], "absolute_url": "/opinion/123/"}],
             }, url, None
 
-        checker._http_get_json = mock_http_get  # type: ignore[assignment]
+        checker._verifier._http_get_json = mock_http_get  # type: ignore[assignment]
         decision = checker._verify_citation(citation)
         assert decision.status.startswith("Verified")
         assert decision.confidence >= 85
@@ -379,7 +379,7 @@ class TestProcessDocumentSmoke:
                 "results": [{"citation": ["347 U.S. 483"], "absolute_url": "/opinion/123/"}],
             }, url, None
 
-        checker._http_get_json = mock_http_get  # type: ignore[assignment]
+        checker._verifier._http_get_json = mock_http_get  # type: ignore[assignment]
         report = checker.process_document(doc_path)
         assert report.total_citations >= 1
         assert report.verified_count >= 1
@@ -421,7 +421,7 @@ class TestProcessDocumentSmoke:
                 "results": [{"citation": ["347 U.S. 483"], "absolute_url": "/opinion/123/"}],
             }, url, None
 
-        checker._http_get_json = mock_http_get  # type: ignore[assignment]
+        checker._verifier._http_get_json = mock_http_get  # type: ignore[assignment]
         report = checker.process_document(pdf_path)
         assert report.total_citations >= 1
 
