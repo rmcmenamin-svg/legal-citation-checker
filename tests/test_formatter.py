@@ -1,6 +1,6 @@
-"""Tests for the Bluebook citation formatter."""
+"""Tests for the Bluebook and California Style Manual citation formatters."""
 
-from legal_citation_checker.formatter import BluebookFormatter
+from legal_citation_checker.formatter import BluebookFormatter, CitationFormatter, is_california_case
 from legal_citation_checker.models import ParsedCitation
 
 
@@ -243,3 +243,182 @@ class TestFormatterInPipeline:
         md = report.to_string(format="markdown")
         assert "Bluebook format" in md
         assert "Brown v. Bd. of Educ." in md
+
+
+# ---------------------------------------------------------------------------
+# California Style Manual
+# ---------------------------------------------------------------------------
+
+class TestCaliforniaDetection:
+    def test_ca_supreme_court_detected(self) -> None:
+        p = ParsedCitation(volume="14", reporter="Cal. 4th", page="248", court="cal")
+        assert is_california_case(p)
+
+    def test_ca_court_of_appeal_detected(self) -> None:
+        p = ParsedCitation(volume="56", reporter="Cal. App. 5th", page="407", court="calctapp2d")
+        assert is_california_case(p)
+
+    def test_ca_reporter_detected_without_court(self) -> None:
+        p = ParsedCitation(volume="10", reporter="Cal. Rptr. 3d", page="100")
+        assert is_california_case(p)
+
+    def test_federal_not_california(self) -> None:
+        p = ParsedCitation(volume="347", reporter="U.S.", page="483", court="scotus")
+        assert not is_california_case(p)
+
+    def test_circuit_not_california(self) -> None:
+        p = ParsedCitation(volume="847", reporter="F.3d", page="1203", court="ca9")
+        assert not is_california_case(p)
+
+
+class TestCSMFormat:
+    def setup_method(self) -> None:
+        self.f = CitationFormatter()  # auto mode
+
+    def test_ca_supreme_court(self) -> None:
+        p = ParsedCitation(
+            volume="14", reporter="Cal. 4th", page="248",
+            plaintiff="People", defendant="Prettyman",
+            year="1996", court="cal",
+        )
+        result = self.f.format(p)
+        assert result == "People v. Prettyman (1996) 14 Cal.4th 248."
+
+    def test_ca_court_of_appeal_with_district(self) -> None:
+        p = ParsedCitation(
+            volume="56", reporter="Cal. App. 5th", page="407",
+            plaintiff="People", defendant="Smith",
+            year="2020", court="calctapp2d",
+        )
+        result = self.f.format(p)
+        assert result == "People v. Smith (2020) 56 Cal.App.5th 407 [2d Dist.]."
+
+    def test_ca_no_case_name_abbreviation(self) -> None:
+        """CSM does not abbreviate case names."""
+        p = ParsedCitation(
+            volume="14", reporter="Cal. 4th", page="248",
+            plaintiff="People", defendant="Board of Education",
+            year="1996", court="cal",
+        )
+        result = self.f.format(p)
+        # CSM keeps "Board of Education" not "Bd. of Educ."
+        assert "Board of Education" in result
+
+    def test_csm_reporter_no_spaces(self) -> None:
+        """CSM reporters have no internal spaces."""
+        p = ParsedCitation(
+            volume="56", reporter="Cal. App. 5th", page="407",
+            year="2020", court="calctapp",
+        )
+        result = self.f.format(p)
+        assert "Cal.App.5th" in result
+        assert "Cal. App. 5th" not in result
+
+    def test_csm_year_after_case_name(self) -> None:
+        """Year comes after case name in CSM, not at end."""
+        p = ParsedCitation(
+            volume="14", reporter="Cal. 4th", page="248",
+            plaintiff="People", defendant="Prettyman",
+            year="1996", court="cal",
+        )
+        result = self.f.format(p)
+        # Year should appear before the reporter, not after
+        year_pos = result.index("(1996)")
+        reporter_pos = result.index("Cal.4th")
+        assert year_pos < reporter_pos
+
+    def test_csm_with_pincite(self) -> None:
+        p = ParsedCitation(
+            volume="14", reporter="Cal. 4th", page="248",
+            plaintiff="People", defendant="Prettyman",
+            year="1996", court="cal", pincite="266",
+        )
+        result = self.f.format(p)
+        assert "248, 266" in result
+
+    def test_in_re_case(self) -> None:
+        p = ParsedCitation(
+            volume="12", reporter="Cal. 5th", page="1",
+            plaintiff="In re Marriage of Bonds",
+            year="2021", court="cal",
+        )
+        result = self.f.format(p)
+        assert result == "In re Marriage of Bonds (2021) 12 Cal.5th 1."
+
+
+class TestCSMShortForm:
+    def setup_method(self) -> None:
+        self.f = CitationFormatter()
+
+    def test_csm_short_with_pincite(self) -> None:
+        """CSM short form uses supra and 'at p.' for pincites."""
+        p = ParsedCitation(
+            volume="14", reporter="Cal. 4th", page="248",
+            plaintiff="People", defendant="Prettyman",
+            court="cal", pincite="266",
+        )
+        result = self.f.format_short(p)
+        assert result == "People, supra, 14 Cal.4th at p. 266."
+
+    def test_csm_short_without_pincite(self) -> None:
+        p = ParsedCitation(
+            volume="14", reporter="Cal. 4th", page="248",
+            plaintiff="People", defendant="Prettyman",
+            court="cal",
+        )
+        result = self.f.format_short(p)
+        assert result == "People, supra, 14 Cal.4th 248."
+
+
+class TestAutoDetection:
+    """Test that auto mode picks the right style per citation."""
+
+    def setup_method(self) -> None:
+        self.f = CitationFormatter(style="auto")
+
+    def test_federal_gets_bluebook(self) -> None:
+        p = ParsedCitation(
+            volume="347", reporter="U.S.", page="483",
+            plaintiff="Brown", defendant="Board of Education",
+            year="1954", court="scotus",
+        )
+        result = self.f.format(p)
+        # Bluebook: abbreviated name, year at end
+        assert "Bd. of Educ." in result
+        assert result.endswith("(1954).")
+
+    def test_california_gets_csm(self) -> None:
+        p = ParsedCitation(
+            volume="14", reporter="Cal. 4th", page="248",
+            plaintiff="People", defendant="Prettyman",
+            year="1996", court="cal",
+        )
+        result = self.f.format(p)
+        # CSM: no abbreviation, year after name, no-space reporter
+        assert "Prettyman" in result  # not abbreviated
+        assert "(1996)" in result
+        assert "Cal.4th" in result
+
+    def test_force_bluebook_on_california(self) -> None:
+        bb = CitationFormatter(style="bluebook")
+        p = ParsedCitation(
+            volume="14", reporter="Cal. 4th", page="248",
+            plaintiff="People", defendant="Prettyman",
+            year="1996", court="cal",
+        )
+        result = bb.format(p)
+        # Forced Bluebook style even for CA case
+        assert "Cal. 4th" in result  # spaces preserved
+        assert result.endswith("(Cal. 1996).")
+
+    def test_force_csm_on_federal(self) -> None:
+        csm = CitationFormatter(style="csm")
+        p = ParsedCitation(
+            volume="347", reporter="U.S.", page="483",
+            plaintiff="Brown", defendant="Board of Education",
+            year="1954", court="scotus",
+        )
+        result = csm.format(p)
+        # CSM style applied to federal case
+        assert "(1954)" in result
+        assert "Board of Education" in result  # no abbreviation

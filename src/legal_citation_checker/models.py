@@ -110,9 +110,15 @@ class ParsedCitation:
 
     @property
     def case_name(self) -> str:
-        """Build 'Plaintiff v. Defendant' if both parties are known."""
+        """Build case name from party information.
+
+        Returns 'Plaintiff v. Defendant' if both known,
+        or just the plaintiff for 'In re' / single-party cases.
+        """
         if self.plaintiff and self.defendant:
             return f"{self.plaintiff} v. {self.defendant}"
+        if self.plaintiff:
+            return self.plaintiff
         return ""
 
     @property
