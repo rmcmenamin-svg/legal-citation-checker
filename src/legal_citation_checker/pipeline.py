@@ -68,7 +68,8 @@ class CitationChecker:
         self.user_agent = user_agent
         self.max_workers = max_workers
         self.disable_cache = disable_cache
-        self._verification_cache: Dict[str, VerificationDecision] = {}
+        self.cache_ttl = 3600  # 1 hour in seconds
+        self._verification_cache: Dict[str, Tuple[float, VerificationDecision]] = {}
         self._normalizer = CitationNormalizer()
 
         if self.verbose and not logger.handlers:
@@ -116,7 +117,12 @@ class CitationChecker:
             base = strip_pincite(citation.normalized_citation or citation.raw_citation)
             cache_key = self._cache_key(base)
             if not self.disable_cache and cache_key in self._verification_cache:
-                cached_decisions[citation.index] = self._verification_cache[cache_key].clone()
+                cached_at, cached_decision = self._verification_cache[cache_key]
+                if (time.monotonic() - cached_at) > self.cache_ttl:
+                    del self._verification_cache[cache_key]
+                    self._log(f"Cache expired for citation {citation.index}")
+                else:
+                    cached_decisions[citation.index] = cached_decision.clone()
                 self._log(f"Cache hit for citation {citation.index}: {citation.normalized_citation}")
             elif cache_key in seen_keys:
                 self._log(f"Dedup: citation {citation.index} ({base}) already queued")
@@ -143,7 +149,7 @@ class CitationChecker:
                             confidence=0,
                             evidence=f"Verification failed with error: {exc}",
                         )
-                    self._verification_cache[key] = decision.clone()
+                    self._verification_cache[key] = (time.monotonic(), decision.clone())
                     verified_decisions[cit.index] = decision
         else:
             for cit, key in to_verify:

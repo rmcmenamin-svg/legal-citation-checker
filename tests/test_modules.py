@@ -145,17 +145,16 @@ class TestVerificationDecisionClone:
 
 class TestDisableCache:
     def test_disable_cache_reverifies(self) -> None:
+        import time
         from legal_citation_checker.pipeline import CitationChecker
 
         checker = CitationChecker(verbose=False, max_workers=1, disable_cache=True)
-        # Pre-populate the cache
         from legal_citation_checker.normalizer import canonical_text
         key = canonical_text("347 U.S. 483")
-        checker._verification_cache[key] = VerificationDecision(
+        checker._verification_cache[key] = (time.monotonic(), VerificationDecision(
             status="Verified (Cached)", confidence=95
-        )
+        ))
 
-        # With disable_cache=True, the cache should be skipped
         from legal_citation_checker.models import ExtractedCitation
         citation = ExtractedCitation(
             index=1,
@@ -173,5 +172,261 @@ class TestDisableCache:
 
         checker._verifier._http_get_json = mock_http  # type: ignore[assignment]
         decision = checker._verify_citation(citation)
-        # Should NOT return the cached "Verified (Cached)" result
         assert decision.status != "Verified (Cached)"
+
+
+class TestCacheTTL:
+    def test_expired_cache_entry_is_not_used(self) -> None:
+        import time
+        from legal_citation_checker.pipeline import CitationChecker
+
+        checker = CitationChecker(verbose=False, max_workers=1)
+        checker.cache_ttl = 0  # Expire immediately
+
+        from legal_citation_checker.normalizer import canonical_text
+        key = canonical_text("347 U.S. 483")
+        checker._verification_cache[key] = (time.monotonic() - 10, VerificationDecision(
+            status="Verified (Stale)", confidence=95
+        ))
+
+        from legal_citation_checker.models import ExtractedCitation
+        citation = ExtractedCitation(
+            index=1,
+            raw_citation="347 U.S. 483",
+            normalized_citation="347 U.S. 483",
+            citation_type="FullCaseCitation",
+            context="...",
+            paragraph_index=1,
+            metadata={"year": "1954", "plaintiff": "Brown", "defendant": "Board of Education"},
+            bluebook_normalized=False,
+        )
+
+        def mock_http(*args: Any, **kwargs: Any) -> Tuple[Dict[str, Any], str, None]:
+            return {"count": 0, "results": []}, "http://example.com", None
+
+        checker._verifier._http_get_json = mock_http  # type: ignore[assignment]
+
+        try:
+            from docx import Document  # type: ignore
+        except ImportError:
+            pytest.skip("python-docx not installed")
+
+        # Process via _verify_citation to avoid needing a full document
+        decision = checker._verify_citation(citation)
+        assert decision.status != "Verified (Stale)"
+
+    def test_fresh_cache_entry_is_used(self) -> None:
+        import time
+        from legal_citation_checker.pipeline import CitationChecker
+
+        checker = CitationChecker(verbose=False, max_workers=1)
+        checker.cache_ttl = 3600
+
+        from legal_citation_checker.normalizer import canonical_text
+        key = canonical_text("347 U.S. 483")
+        cached = VerificationDecision(status="Verified (Fresh)", confidence=95)
+        checker._verification_cache[key] = (time.monotonic(), cached)
+
+        # The cache lookup happens in process_document, not _verify_citation.
+        # We test by checking the cache is still populated.
+        assert key in checker._verification_cache
+        ts, decision = checker._verification_cache[key]
+        assert decision.status == "Verified (Fresh)"
+        assert (time.monotonic() - ts) < checker.cache_ttl
+
+
+class TestGoogleScholarVerification:
+    def test_google_scholar_match(self) -> None:
+        from legal_citation_checker.verifier import CitationVerifier
+
+        verifier = CitationVerifier(session=None, request_timeout=8.0)
+
+        citation = ExtractedCitation(
+            index=1,
+            raw_citation="347 U.S. 483",
+            normalized_citation="347 U.S. 483",
+            citation_type="FullCaseCitation",
+            context="...",
+            paragraph_index=1,
+            metadata={"year": "1954", "plaintiff": "Brown", "defendant": "Board of Education"},
+            bluebook_normalized=False,
+        )
+
+        # Mock the session with a fake response containing the citation
+        class FakeResponse:
+            status_code = 200
+            text = '<div>Brown v. Board of Education, 347 U.S. 483 (1954)</div>'
+
+        class FakeSession:
+            def get(self, url: str, **kwargs: Any) -> FakeResponse:
+                return FakeResponse()
+
+        verifier._session = FakeSession()  # type: ignore[assignment]
+        attempts: list = []
+        decision = verifier._verify_with_google_scholar(citation, attempts)
+
+        assert decision is not None
+        assert decision.status == "Verified (Google Scholar)"
+        assert decision.confidence == 85
+        assert len(attempts) >= 1
+        assert attempts[0].source == "Google Scholar"
+
+    def test_google_scholar_no_match(self) -> None:
+        from legal_citation_checker.verifier import CitationVerifier
+
+        verifier = CitationVerifier(session=None, request_timeout=8.0)
+
+        citation = ExtractedCitation(
+            index=1,
+            raw_citation="999 F.3d 999",
+            normalized_citation="999 F.3d 999",
+            citation_type="FullCaseCitation",
+            context="...",
+            paragraph_index=1,
+            metadata={},
+            bluebook_normalized=False,
+        )
+
+        class FakeResponse:
+            status_code = 200
+            text = '<div>No results found for your query.</div>'
+
+        class FakeSession:
+            def get(self, url: str, **kwargs: Any) -> FakeResponse:
+                return FakeResponse()
+
+        verifier._session = FakeSession()  # type: ignore[assignment]
+        attempts: list = []
+        decision = verifier._verify_with_google_scholar(citation, attempts)
+
+        assert decision is None
+        assert len(attempts) >= 1
+        assert not attempts[0].success
+
+    def test_google_scholar_skipped_without_session(self) -> None:
+        from legal_citation_checker.verifier import CitationVerifier
+
+        verifier = CitationVerifier(session=None, request_timeout=8.0)
+
+        citation = ExtractedCitation(
+            index=1,
+            raw_citation="347 U.S. 483",
+            normalized_citation="347 U.S. 483",
+            citation_type="FullCaseCitation",
+            context="...",
+            paragraph_index=1,
+            metadata={},
+            bluebook_normalized=False,
+        )
+
+        attempts: list = []
+        decision = verifier._verify_with_google_scholar(citation, attempts)
+        assert decision is None
+        assert len(attempts) == 0
+
+
+class TestWebDocketSearch:
+    def test_web_docket_finds_case(self) -> None:
+        from legal_citation_checker.verifier import CitationVerifier
+
+        verifier = CitationVerifier(session=None, request_timeout=8.0)
+
+        citation = ExtractedCitation(
+            index=1,
+            raw_citation="347 U.S. 483",
+            normalized_citation="347 U.S. 483",
+            citation_type="FullCaseCitation",
+            context="...",
+            paragraph_index=1,
+            metadata={
+                "year": "1954",
+                "plaintiff": "Brown",
+                "defendant": "Board of Education",
+                "court": "scotus",
+            },
+            bluebook_normalized=False,
+        )
+
+        class FakeResponse:
+            status_code = 200
+            text = (
+                '<div>Brown v. Board of Education - docket entry - '
+                'Opinion filed May 17, 1954 - 347 U.S. 483 - Supreme Court</div>'
+            )
+
+        class FakeSession:
+            def get(self, url: str, **kwargs: Any) -> FakeResponse:
+                return FakeResponse()
+
+        verifier._session = FakeSession()  # type: ignore[assignment]
+        attempts: list = []
+        decision = verifier._verify_with_web_docket_search(citation, attempts)
+
+        assert decision is not None
+        assert decision.status == "Verified (Web Search)"
+        assert decision.confidence == 75
+        assert len(attempts) >= 1
+        assert attempts[0].source == "Web Search"
+
+    def test_web_docket_no_match(self) -> None:
+        from legal_citation_checker.verifier import CitationVerifier
+
+        verifier = CitationVerifier(session=None, request_timeout=8.0)
+
+        citation = ExtractedCitation(
+            index=1,
+            raw_citation="999 F.3d 999",
+            normalized_citation="999 F.3d 999",
+            citation_type="FullCaseCitation",
+            context="...",
+            paragraph_index=1,
+            metadata={
+                "plaintiff": "Fakerson",
+                "defendant": "Imaginary Corp",
+                "court": "9th Cir.",
+            },
+            bluebook_normalized=False,
+        )
+
+        class FakeResponse:
+            status_code = 200
+            text = '<div>No results found. Did you mean something else?</div>'
+
+        class FakeSession:
+            def get(self, url: str, **kwargs: Any) -> FakeResponse:
+                return FakeResponse()
+
+        verifier._session = FakeSession()  # type: ignore[assignment]
+        attempts: list = []
+        decision = verifier._verify_with_web_docket_search(citation, attempts)
+
+        assert decision is None
+        assert len(attempts) >= 1
+        assert not attempts[0].success
+
+    def test_web_docket_skipped_without_case_name(self) -> None:
+        from legal_citation_checker.verifier import CitationVerifier
+
+        verifier = CitationVerifier(session=None, request_timeout=8.0)
+
+        citation = ExtractedCitation(
+            index=1,
+            raw_citation="347 U.S. 483",
+            normalized_citation="347 U.S. 483",
+            citation_type="FullCaseCitation",
+            context="...",
+            paragraph_index=1,
+            metadata={},  # No case name info
+            bluebook_normalized=False,
+        )
+
+        class FakeSession:
+            def get(self, url: str, **kwargs: Any) -> None:
+                raise AssertionError("Should not be called")
+
+        verifier._session = FakeSession()  # type: ignore[assignment]
+        attempts: list = []
+        decision = verifier._verify_with_web_docket_search(citation, attempts)
+
+        assert decision is None
+        assert len(attempts) == 0

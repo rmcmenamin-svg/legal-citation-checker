@@ -1,12 +1,16 @@
-"""Citation verification against CourtListener and secondary sources."""
+"""Citation verification against CourtListener and Google Scholar."""
 
 from __future__ import annotations
 
+import logging
 import re
 from typing import Any, Dict, Iterable, List, Optional, Tuple
+from urllib.parse import quote_plus
 
 from .models import ExtractedCitation, SearchAttempt, VerificationDecision
 from .normalizer import canonical_text
+
+logger = logging.getLogger("legal_citation_checker")
 
 # Regex to strip pincites: "347 U.S. 483, 495" -> "347 U.S. 483"
 _PINCITE_PATTERN = re.compile(r"^(.+?\d+)\s*,\s*\d+(?:\s*[-–]\s*\d+)?$")
@@ -51,12 +55,22 @@ class CitationVerifier:
         if decision is not None:
             return decision
 
-        # Step 3: Additional secondary source fallback(s)
+        # Step 3: Additional CourtListener fallback(s)
         decision = self._verify_with_secondary_sources(citation, attempts)
         if decision is not None:
             return decision
 
-        # Step 4: Check if failures were due to network/API issues vs. real "not found".
+        # Step 4: Google Scholar fallback (independent second source)
+        decision = self._verify_with_google_scholar(citation, attempts)
+        if decision is not None:
+            return decision
+
+        # Step 5: Web docket search — distinctive caption word + court name
+        decision = self._verify_with_web_docket_search(citation, attempts)
+        if decision is not None:
+            return decision
+
+        # Step 6: Check if failures were due to network/API issues vs. real "not found".
         all_errored = all(a.error is not None for a in attempts if a.details != "Skipped due to missing query parameters")
         non_skipped = [a for a in attempts if a.details != "Skipped due to missing query parameters"]
 
@@ -71,7 +85,7 @@ class CitationVerifier:
                 search_attempts=attempts,
             )
 
-        # Step 5: Hallucination declaration.
+        # Step 7: Hallucination declaration.
         confidence = _hallucination_confidence(len(attempts))
         evidence = _build_failure_evidence(attempts)
         return VerificationDecision(
@@ -287,6 +301,207 @@ class CitationVerifier:
                     source="CourtListener",
                     source_url=match_url or url,
                     evidence=f"Case name + year search matched ({result_count} results).",
+                    search_attempts=attempts,
+                )
+
+        return None
+
+    def _verify_with_google_scholar(
+        self,
+        citation: ExtractedCitation,
+        attempts: List[SearchAttempt],
+    ) -> Optional[VerificationDecision]:
+        """Verify citation via Google Scholar case law search.
+
+        Google Scholar's case law search at scholar.google.com/scholar?as_sdt=4
+        returns HTML results. We search for the citation and check if the
+        response contains matching case references.
+        """
+        if self._session is None:
+            return None
+
+        base_citation = strip_pincite(citation.normalized_citation)
+        case_name = case_name_from_metadata(citation.metadata)
+        target_triplet = reporter_triplet(base_citation)
+
+        # Strategy 1: search by exact citation string
+        strategies: List[Tuple[str, str]] = [
+            ("scholar_citation", base_citation),
+        ]
+        # Strategy 2: case name + citation (if we have a case name)
+        if case_name:
+            strategies.append(("scholar_name_citation", f"{case_name} {base_citation}"))
+
+        for strategy, query_text in strategies:
+            scholar_url = (
+                f"https://scholar.google.com/scholar"
+                f"?as_sdt=4&q={quote_plus(query_text)}&hl=en"
+            )
+
+            success = False
+            error = None
+            match_url: Optional[str] = None
+
+            try:
+                response = self._session.get(
+                    scholar_url,
+                    timeout=self.request_timeout,
+                    headers={"User-Agent": "legal-citation-checker/0.1"},
+                )
+                if response.status_code < 400:
+                    body = response.text
+                    # Check if the citation triplet or exact text appears in results
+                    if base_citation in body:
+                        success = True
+                        match_url = scholar_url
+                    elif target_triplet:
+                        # Check for volume + page in results (reporter may be abbreviated differently)
+                        vol, _, page = target_triplet
+                        if f">{vol} " in body and f" {page}" in body:
+                            success = True
+                            match_url = scholar_url
+                else:
+                    error = f"HTTP {response.status_code}"
+            except Exception as exc:
+                error = str(exc)
+
+            attempts.append(
+                SearchAttempt(
+                    source="Google Scholar",
+                    strategy=strategy,
+                    query=query_text,
+                    success=success,
+                    result_count=1 if success else 0,
+                    url=match_url or scholar_url,
+                    details="Citation found in Google Scholar results" if success else "No match in results",
+                    error=error,
+                )
+            )
+
+            if success:
+                return VerificationDecision(
+                    status="Verified (Google Scholar)",
+                    confidence=85,
+                    source="Google Scholar",
+                    source_url=match_url,
+                    evidence=f"Google Scholar {strategy} search found a matching citation.",
+                    search_attempts=attempts,
+                )
+
+        return None
+
+    def _verify_with_web_docket_search(
+        self,
+        citation: ExtractedCitation,
+        attempts: List[SearchAttempt],
+    ) -> Optional[VerificationDecision]:
+        """Verify by searching the web for distinctive caption words + court.
+
+        Real cases leave a web footprint on dockets, law firm sites, news, etc.
+        Hallucinated cases have no web presence. We pick the most distinctive
+        party name and combine it with the court to form a targeted query.
+        """
+        if self._session is None:
+            return None
+
+        case_name = case_name_from_metadata(citation.metadata)
+        if not case_name:
+            return None
+
+        base_citation = strip_pincite(citation.normalized_citation)
+        court = str(citation.metadata.get("court") or "")
+        meta_year = str(citation.metadata.get("year") or "")
+
+        # Pick the most distinctive word from the case name.
+        # Skip common legal words and short words.
+        _COMMON_WORDS = frozenset({
+            "v", "vs", "the", "of", "in", "re", "ex", "rel", "et", "al",
+            "state", "states", "united", "people", "city", "county",
+            "board", "department", "commission", "inc", "corp", "llc", "ltd",
+        })
+        words = re.split(r"[\s\.\,]+", case_name)
+        distinctive = [
+            w for w in words
+            if len(w) > 3 and w.lower() not in _COMMON_WORDS
+        ]
+
+        if not distinctive:
+            return None
+
+        # Use the longest word as the most distinctive identifier.
+        keyword = max(distinctive, key=len)
+
+        # Build search queries combining keyword + court/citation info.
+        queries: List[Tuple[str, str]] = []
+
+        if court:
+            queries.append(("docket_keyword_court", f'"{keyword}" {court} case'))
+        queries.append(("docket_keyword_citation", f'"{keyword}" "{base_citation}"'))
+        if meta_year:
+            queries.append(("docket_keyword_year", f'"{keyword}" case {meta_year}'))
+
+        for strategy, query_text in queries:
+            search_url = (
+                f"https://www.google.com/search"
+                f"?q={quote_plus(query_text)}"
+            )
+
+            success = False
+            error = None
+            match_url: Optional[str] = None
+
+            try:
+                response = self._session.get(
+                    search_url,
+                    timeout=self.request_timeout,
+                    headers={"User-Agent": "legal-citation-checker/0.1"},
+                )
+                if response.status_code < 400:
+                    body = response.text.lower()
+                    # Check if the response contains indicators of a real case:
+                    # - The citation text itself
+                    # - Common legal docket indicators alongside our keyword
+                    keyword_lower = keyword.lower()
+                    base_lower = base_citation.lower()
+
+                    has_citation = base_lower in body
+                    has_keyword = keyword_lower in body
+                    has_legal_context = any(
+                        term in body for term in
+                        ("docket", "opinion", "court", "ruling", "decided", "filed")
+                    )
+
+                    if has_citation and has_keyword:
+                        success = True
+                        match_url = search_url
+                    elif has_keyword and has_legal_context:
+                        success = True
+                        match_url = search_url
+                else:
+                    error = f"HTTP {response.status_code}"
+            except Exception as exc:
+                error = str(exc)
+
+            attempts.append(
+                SearchAttempt(
+                    source="Web Search",
+                    strategy=strategy,
+                    query=query_text,
+                    success=success,
+                    result_count=1 if success else 0,
+                    url=match_url or search_url,
+                    details="Case found via web docket search" if success else "No docket presence found",
+                    error=error,
+                )
+            )
+
+            if success:
+                return VerificationDecision(
+                    status="Verified (Web Search)",
+                    confidence=75,
+                    source="Web Search",
+                    source_url=match_url,
+                    evidence=f"Web search for '{query_text}' found case presence on the web.",
                     search_attempts=attempts,
                 )
 
