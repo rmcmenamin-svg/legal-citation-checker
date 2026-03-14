@@ -33,6 +33,7 @@ from .models import (
     SearchAttempt,
     VerificationDecision,
 )
+from .formatter import BluebookFormatter
 from .normalizer import CitationNormalizer, canonical_text
 from .report import AuditReport
 from .verifier import (
@@ -71,6 +72,7 @@ class CitationChecker:
         self.cache_ttl = 3600  # 1 hour in seconds
         self._verification_cache: Dict[str, Tuple[float, VerificationDecision]] = {}
         self._normalizer = CitationNormalizer()
+        self._formatter = BluebookFormatter()
 
         if self.verbose and not logger.handlers:
             handler = logging.StreamHandler()
@@ -161,6 +163,7 @@ class CitationChecker:
         audited_citations: List[CitationAudit] = []
         for citation in extracted_citations:
             decision = cached_decisions.get(citation.index) or verified_decisions[citation.index]
+            bluebook = self._formatter.format(citation.parsed)
             audited_citations.append(
                 CitationAudit(
                     index=citation.index,
@@ -177,6 +180,7 @@ class CitationChecker:
                     source_url=decision.source_url,
                     evidence=decision.evidence,
                     search_attempts=decision.search_attempts,
+                    bluebook_citation=bluebook,
                 )
             )
 

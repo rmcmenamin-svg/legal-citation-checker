@@ -121,6 +121,8 @@ class AuditReport:
             lines.append(f"## Citation {citation.index}")
             lines.append(f"- Raw: `{citation.raw_citation}`")
             lines.append(f"- Bluebook normalized: `{citation.normalized_citation}`")
+            if citation.bluebook_citation:
+                lines.append(f"- Bluebook format: *{citation.bluebook_citation}*")
             lines.append(f"- Status: **{citation.status}**")
             lines.append(f"- Confidence: {citation.confidence}%")
             if citation.source:
@@ -168,11 +170,17 @@ class AuditReport:
                 if citation.source_url
                 else ""
             )
+            bluebook_html = (
+                f"<em>{html_escape(citation.bluebook_citation)}</em>"
+                if citation.bluebook_citation
+                else ""
+            )
             rows.append(
                 "<tr>"
                 f"<td>{citation.index}</td>"
                 f"<td><code>{html_escape(citation.raw_citation)}</code></td>"
                 f"<td><code>{html_escape(citation.normalized_citation)}</code></td>"
+                f"<td>{bluebook_html}</td>"
                 f"<td>{html_escape(citation.status)}</td>"
                 f"<td>{citation.confidence}%</td>"
                 f"<td>{html_escape(citation.source or '')}</td>"
@@ -207,7 +215,7 @@ class AuditReport:
             + (f"<h2>Notes</h2><ul>{notes_html}</ul>" if notes_html else "")
             + "<h2>Citations</h2>"
             "<table><thead><tr>"
-            "<th>#</th><th>Raw</th><th>Normalized</th><th>Status</th>"
+            "<th>#</th><th>Raw</th><th>Normalized</th><th>Bluebook</th><th>Status</th>"
             "<th>Confidence</th><th>Source</th><th>URL</th><th>Context</th><th>Search Attempts</th>"
             "</tr></thead><tbody>"
             + "".join(rows)

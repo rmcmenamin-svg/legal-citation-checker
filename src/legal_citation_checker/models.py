@@ -81,6 +81,7 @@ class CitationAudit:
     source_url: Optional[str]
     evidence: str
     search_attempts: List[SearchAttempt] = field(default_factory=list)
+    bluebook_citation: str = ""
 
     def to_dict(self) -> Dict[str, Any]:
         data = asdict(self)
