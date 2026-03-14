@@ -1,0 +1,35 @@
+Metadata-Version: 2.4
+Name: legal-citation-checker
+Version: 0.1.0
+Summary: Legal citation authenticity verification tool
+Home-page: https://github.com/yourusername/legal-citation-checker
+Author: Ryan McMenamin
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Legal Industry
+Classifier: Topic :: Text Processing :: Linguistic
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+Requires-Dist: python-docx>=0.8.11
+Requires-Dist: eyecite>=2.5.0
+Requires-Dist: reporters-db>=3.2.32
+Requires-Dist: requests>=2.31.0
+Requires-Dist: beautifulsoup4>=4.12.0
+Requires-Dist: lxml>=4.9.0
+Requires-Dist: pytest>=7.4.0
+Requires-Dist: black>=23.0.0
+Requires-Dist: mypy>=1.0.0
+Dynamic: author
+Dynamic: classifier
+Dynamic: description
+Dynamic: description-content-type
+Dynamic: home-page
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary
+
+# Legal Citation Checker - Phase 1

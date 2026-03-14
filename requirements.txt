@@ -1,0 +1,21 @@
+# Core dependencies
+python-docx>=0.8.11
+eyecite>=2.5.0
+reporters-db>=3.2.32
+
+# Bluebook formatting (we'll study and adapt)
+# bluebook-cite (will study source code)
+
+# Google Caselaw (we'll study and adapt)
+# gcl (will study source code)
+
+# PDF support
+pdfplumber>=0.10.0
+
+# Additional utilities
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+lxml>=4.9.0
+pytest>=7.4.0
+black>=23.0.0
+mypy>=1.0.0

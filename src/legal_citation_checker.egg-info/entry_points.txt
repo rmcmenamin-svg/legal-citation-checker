@@ -1,0 +1,2 @@
+[console_scripts]
+citecheck = legal_citation_checker.cli:main
