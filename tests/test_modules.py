@@ -6,6 +6,7 @@ import pytest
 
 from legal_citation_checker.models import (
     ExtractedCitation,
+    ParsedCitation,
     SearchAttempt,
     VerificationDecision,
 )
@@ -430,3 +431,219 @@ class TestWebDocketSearch:
 
         assert decision is None
         assert len(attempts) == 0
+
+
+# ---------------------------------------------------------------------------
+# ParsedCitation
+# ---------------------------------------------------------------------------
+
+class TestParsedCitation:
+    def test_case_name(self) -> None:
+        p = ParsedCitation(plaintiff="Brown", defendant="Board of Education")
+        assert p.case_name == "Brown v. Board of Education"
+
+    def test_case_name_empty_without_parties(self) -> None:
+        p = ParsedCitation()
+        assert p.case_name == ""
+
+    def test_base_citation(self) -> None:
+        p = ParsedCitation(volume="347", reporter="U.S.", page="483")
+        assert p.base_citation == "347 U.S. 483"
+
+    def test_base_citation_empty_without_triplet(self) -> None:
+        p = ParsedCitation(volume="347")
+        assert p.base_citation == ""
+
+    def test_has_triplet(self) -> None:
+        p = ParsedCitation(volume="347", reporter="U.S.", page="483")
+        assert p.has_triplet
+
+    def test_no_triplet(self) -> None:
+        p = ParsedCitation()
+        assert not p.has_triplet
+
+    def test_to_dict_omits_none(self) -> None:
+        p = ParsedCitation(volume="347", reporter="U.S.", page="483")
+        d = p.to_dict()
+        assert "volume" in d
+        assert "plaintiff" not in d
+
+
+class TestParsedCitationExtraction:
+    """Verify that eyecite populates ParsedCitation correctly."""
+
+    def test_eyecite_populates_parsed(self) -> None:
+        from legal_citation_checker.extractors import extract_citations
+        from legal_citation_checker.models import DocumentText, ParagraphSpan
+        from legal_citation_checker.normalizer import CitationNormalizer
+
+        text = "Brown v. Board of Education, 347 U.S. 483 (1954)."
+        doc = DocumentText(
+            full_text=text,
+            paragraphs=[ParagraphSpan(index=1, text=text, start=0, end=len(text))],
+        )
+        cites = extract_citations(doc, CitationNormalizer())
+        assert len(cites) >= 1
+        p = cites[0].parsed
+        assert p.volume == "347"
+        assert p.reporter == "U.S."
+        assert p.page == "483"
+        assert p.year == "1954"
+        assert p.court == "scotus"
+        assert p.plaintiff == "Brown"
+        assert p.defendant == "Board of Education"
+        assert p.has_triplet
+        assert p.base_citation == "347 U.S. 483"
+        assert p.case_name == "Brown v. Board of Education"
+
+
+# ---------------------------------------------------------------------------
+# Tier 1: Citation lookup (foolproof if positive)
+# ---------------------------------------------------------------------------
+
+class TestTier1CitationLookup:
+    def _make_citation(self, **overrides: Any) -> ExtractedCitation:
+        defaults: Dict[str, Any] = dict(
+            index=1,
+            raw_citation="347 U.S. 483",
+            normalized_citation="347 U.S. 483",
+            citation_type="FullCaseCitation",
+            context="...",
+            paragraph_index=1,
+            metadata={"year": "1954", "plaintiff": "Brown", "defendant": "Board of Education"},
+            bluebook_normalized=False,
+            parsed=ParsedCitation(
+                volume="347", reporter="U.S.", page="483",
+                plaintiff="Brown", defendant="Board of Education",
+                year="1954", court="scotus",
+            ),
+        )
+        defaults.update(overrides)
+        return ExtractedCitation(**defaults)
+
+    def test_positive_match_is_conclusive(self) -> None:
+        from legal_citation_checker.verifier import CitationVerifier
+
+        verifier = CitationVerifier(session=None, request_timeout=8.0)
+
+        def mock_http(url: str, **kwargs: Any) -> Tuple[Dict[str, Any], str, None]:
+            return {
+                "count": 1,
+                "results": [{"citation": ["347 U.S. 483"], "absolute_url": "/opinion/1/"}],
+            }, url, None
+
+        verifier._http_get_json = mock_http  # type: ignore[assignment]
+        citation = self._make_citation()
+        attempts: list = []
+        decision = verifier._tier1_citation_lookup(citation, attempts)
+
+        assert decision is not None
+        assert decision.status == "Verified (CourtListener)"
+        assert decision.confidence == 95
+
+    def test_negative_is_not_conclusive(self) -> None:
+        """A miss on citation lookup should return None, not hallucination."""
+        from legal_citation_checker.verifier import CitationVerifier
+
+        verifier = CitationVerifier(session=None, request_timeout=8.0)
+
+        def mock_http(url: str, **kwargs: Any) -> Tuple[Dict[str, Any], str, None]:
+            return {"count": 0, "results": []}, url, None
+
+        verifier._http_get_json = mock_http  # type: ignore[assignment]
+        citation = self._make_citation()
+        attempts: list = []
+        decision = verifier._tier1_citation_lookup(citation, attempts)
+
+        # Should return None — NOT a hallucination decision
+        assert decision is None
+
+
+# ---------------------------------------------------------------------------
+# Tier 2: Party name search (fuzzy matching)
+# ---------------------------------------------------------------------------
+
+class TestTier2PartyNameSearch:
+    def _make_citation(self, **overrides: Any) -> ExtractedCitation:
+        defaults: Dict[str, Any] = dict(
+            index=1,
+            raw_citation="347 U.S. 483",
+            normalized_citation="347 U.S. 483",
+            citation_type="FullCaseCitation",
+            context="...",
+            paragraph_index=1,
+            metadata={"year": "1954", "plaintiff": "Brown", "defendant": "Board of Education"},
+            bluebook_normalized=False,
+            parsed=ParsedCitation(
+                volume="347", reporter="U.S.", page="483",
+                plaintiff="Brown", defendant="Board of Education",
+                year="1954", court="scotus",
+            ),
+        )
+        defaults.update(overrides)
+        return ExtractedCitation(**defaults)
+
+    def test_party_match_with_citation_in_results(self) -> None:
+        """Result contains both party names AND our citation -> verified."""
+        from legal_citation_checker.verifier import CitationVerifier
+
+        verifier = CitationVerifier(session=None, request_timeout=8.0)
+
+        def mock_http(url: str, **kwargs: Any) -> Tuple[Dict[str, Any], str, None]:
+            return {
+                "count": 1,
+                "results": [{
+                    "case_name": "Brown v. Board of Education",
+                    "citation": ["347 U.S. 483"],
+                    "date_filed": "1954-05-17",
+                    "absolute_url": "/opinion/1/",
+                }],
+            }, url, None
+
+        verifier._http_get_json = mock_http  # type: ignore[assignment]
+        citation = self._make_citation()
+        attempts: list = []
+        decision = verifier._tier2_party_name_search(citation, attempts)
+
+        assert decision is not None
+        assert "Verified" in decision.status
+        assert decision.confidence >= 85
+
+    def test_party_match_without_citation_uses_name_year(self) -> None:
+        """Result has party names + year but different citation -> still verified."""
+        from legal_citation_checker.verifier import CitationVerifier
+
+        verifier = CitationVerifier(session=None, request_timeout=8.0)
+
+        def mock_http(url: str, **kwargs: Any) -> Tuple[Dict[str, Any], str, None]:
+            return {
+                "count": 1,
+                "results": [{
+                    "case_name": "Brown v. Board of Education of Topeka",
+                    "citation": ["347 U.S. 483"],
+                    "date_filed": "1954-05-17",
+                    "absolute_url": "/opinion/1/",
+                }],
+            }, url, None
+
+        verifier._http_get_json = mock_http  # type: ignore[assignment]
+        citation = self._make_citation()
+        attempts: list = []
+        decision = verifier._tier2_party_name_search(citation, attempts)
+
+        assert decision is not None
+        assert decision.confidence >= 85
+
+    def test_no_party_names_skips(self) -> None:
+        from legal_citation_checker.verifier import CitationVerifier
+
+        verifier = CitationVerifier(session=None, request_timeout=8.0)
+        verifier._http_get_json = lambda *a, **k: ({"count": 0, "results": []}, "", None)  # type: ignore
+
+        citation = self._make_citation(
+            metadata={},
+            parsed=ParsedCitation(volume="347", reporter="U.S.", page="483"),
+        )
+        attempts: list = []
+        decision = verifier._tier2_party_name_search(citation, attempts)
+        assert decision is None

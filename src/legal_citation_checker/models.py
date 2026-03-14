@@ -89,6 +89,47 @@ class CitationAudit:
 
 
 @dataclass
+class ParsedCitation:
+    """Structured citation components parsed once during extraction.
+
+    Holds the volume/reporter/page triplet, party names, court, and year
+    so downstream code never has to re-parse from strings.
+    """
+
+    volume: Optional[str] = None
+    reporter: Optional[str] = None
+    page: Optional[str] = None
+    plaintiff: Optional[str] = None
+    defendant: Optional[str] = None
+    year: Optional[str] = None
+    court: Optional[str] = None
+    pincite: Optional[str] = None
+    reporter_full_name: Optional[str] = None
+    cite_type: Optional[str] = None  # e.g. "federal", "state", "specialty"
+
+    @property
+    def case_name(self) -> str:
+        """Build 'Plaintiff v. Defendant' if both parties are known."""
+        if self.plaintiff and self.defendant:
+            return f"{self.plaintiff} v. {self.defendant}"
+        return ""
+
+    @property
+    def base_citation(self) -> str:
+        """Volume Reporter Page without pincite, e.g. '347 U.S. 483'."""
+        if self.volume and self.reporter and self.page:
+            return f"{self.volume} {self.reporter} {self.page}"
+        return ""
+
+    @property
+    def has_triplet(self) -> bool:
+        return bool(self.volume and self.reporter and self.page)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {k: v for k, v in asdict(self).items() if v is not None}
+
+
+@dataclass
 class ExtractedCitation:
     """Intermediate citation object before verification."""
 
@@ -100,3 +141,4 @@ class ExtractedCitation:
     paragraph_index: Optional[int]
     metadata: Dict[str, Any]
     bluebook_normalized: bool
+    parsed: ParsedCitation = field(default_factory=ParsedCitation)

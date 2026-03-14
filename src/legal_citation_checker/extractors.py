@@ -6,7 +6,7 @@ import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from .models import DocumentText, ExtractedCitation, ParagraphSpan
+from .models import DocumentText, ExtractedCitation, ParsedCitation, ParagraphSpan
 from .normalizer import CitationNormalizer
 
 # Citation types that should be skipped (not verifiable against case law databases).
@@ -164,6 +164,7 @@ def extract_citations(
             continue
 
         metadata = _citation_metadata(citation_obj)
+        parsed = _build_parsed_citation(citation_obj, metadata)
         normalized, changed = normalizer.normalize(raw_citation, metadata)
         paragraph_index = _paragraph_for_span(document_text.paragraphs, span)
         context = _citation_context(document_text, span)
@@ -178,6 +179,7 @@ def extract_citations(
                 paragraph_index=paragraph_index,
                 metadata=metadata,
                 bluebook_normalized=changed,
+                parsed=parsed,
             )
         )
 
@@ -187,6 +189,50 @@ def extract_citations(
 def is_statute_or_regulation(citation_text: str) -> bool:
     """Check if citation text matches a statute or regulation pattern."""
     return any(pattern.search(citation_text) for pattern in _STATUTE_PATTERNS)
+
+
+def _build_parsed_citation(citation_obj: Any, metadata: Dict[str, Any]) -> ParsedCitation:
+    """Extract structured citation components from eyecite object + metadata."""
+    # eyecite stores volume/reporter/page in groups dict
+    groups = getattr(citation_obj, "groups", {}) or {}
+    volume = groups.get("volume")
+    reporter = groups.get("reporter")
+    page = groups.get("page")
+
+    # Reporter full name from edition info
+    reporter_full_name = None
+    cite_type = None
+    edition = getattr(citation_obj, "edition_guess", None)
+    if edition is not None:
+        rep_obj = getattr(edition, "reporter", None)
+        if rep_obj is not None:
+            reporter_full_name = getattr(rep_obj, "name", None)
+            cite_type = getattr(rep_obj, "cite_type", None)
+
+    # Party names and court/year from metadata (already extracted)
+    plaintiff = str(metadata.get("plaintiff") or "").strip() or None
+    defendant = str(metadata.get("defendant") or "").strip() or None
+    year = str(metadata.get("year") or "").strip() or None
+    court = str(metadata.get("court") or "").strip() or None
+
+    # Pincite from eyecite metadata
+    eyecite_meta = getattr(citation_obj, "metadata", None)
+    pincite = None
+    if eyecite_meta is not None:
+        pincite = getattr(eyecite_meta, "pin_cite", None)
+
+    return ParsedCitation(
+        volume=volume,
+        reporter=reporter,
+        page=page,
+        plaintiff=plaintiff,
+        defendant=defendant,
+        year=year,
+        court=court,
+        pincite=pincite,
+        reporter_full_name=reporter_full_name,
+        cite_type=cite_type,
+    )
 
 
 def _citation_span(citation_obj: Any) -> Optional[Tuple[int, int]]:
