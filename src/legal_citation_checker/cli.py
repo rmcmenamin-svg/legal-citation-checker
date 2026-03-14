@@ -34,6 +34,22 @@ def main(args: Optional[list] = None) -> int:
     parser.add_argument(
         "-v", "--verbose", action="store_true", help="Enable verbose output"
     )
+    parser.add_argument(
+        "--timeout",
+        type=float,
+        default=8.0,
+        help="API request timeout in seconds (default: 8)",
+    )
+    parser.add_argument(
+        "--no-cache",
+        action="store_true",
+        help="Disable verification result caching",
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version="legal-citation-checker 0.1.0",
+    )
 
     parsed_args = parser.parse_args(args)
 
@@ -48,7 +64,11 @@ def main(args: Optional[list] = None) -> int:
         return 1
 
     try:
-        checker = CitationChecker(verbose=parsed_args.verbose)
+        checker = CitationChecker(
+            verbose=parsed_args.verbose,
+            request_timeout=parsed_args.timeout,
+            disable_cache=parsed_args.no_cache,
+        )
         report = checker.process_document(parsed_args.input_file)
         
         if parsed_args.output:

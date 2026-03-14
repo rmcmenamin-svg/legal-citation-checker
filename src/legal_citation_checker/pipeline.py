@@ -11,6 +11,7 @@ Phase 1 scope:
 from __future__ import annotations
 
 import json
+import logging
 import re
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -231,6 +232,7 @@ class AuditReport:
             lines.append("| --- | --- | --- | --- |")
             for c in flagged:
                 ctx = c.context[:80] + "..." if len(c.context) > 80 else c.context
+                ctx = ctx.replace("|", "\\|")
                 lines.append(f"| {c.index} | `{c.normalized_citation}` | {c.status} | {ctx} |")
             lines.append("")
         else:
@@ -260,11 +262,12 @@ class AuditReport:
                 lines.append("| Source | Strategy | Query | Success | Results | URL |")
                 lines.append("| --- | --- | --- | --- | --- | --- |")
                 for attempt in citation.search_attempts:
+                    esc = lambda s: str(s).replace("|", "\\|")
                     lines.append(
                         "| "
-                        f"{attempt.source} | {attempt.strategy} | {attempt.query} | "
+                        f"{esc(attempt.source)} | {esc(attempt.strategy)} | {esc(attempt.query)} | "
                         f"{'Yes' if attempt.success else 'No'} | {attempt.result_count} | "
-                        f"{attempt.url or ''} |"
+                        f"{esc(attempt.url or '')} |"
                     )
             lines.append("")
 
@@ -345,6 +348,9 @@ class ExtractedCitation:
     bluebook_normalized: bool
 
 
+logger = logging.getLogger("legal_citation_checker")
+
+
 class CitationChecker:
     """Phase 1 pipeline orchestrator."""
 
@@ -354,13 +360,21 @@ class CitationChecker:
         request_timeout: float = 8.0,
         user_agent: str = "legal-citation-checker/0.1",
         max_workers: int = 4,
+        disable_cache: bool = False,
     ) -> None:
         self.verbose = verbose
         self.request_timeout = request_timeout
         self.user_agent = user_agent
         self.max_workers = max_workers
+        self.disable_cache = disable_cache
         self._verification_cache: Dict[str, VerificationDecision] = {}
         self._reporter_aliases: Optional[Dict[str, str]] = None
+
+        if self.verbose and not logger.handlers:
+            handler = logging.StreamHandler()
+            handler.setFormatter(logging.Formatter("[citation-checker] %(message)s"))
+            logger.addHandler(handler)
+            logger.setLevel(logging.DEBUG)
 
         self._session = None
         if requests is not None:
@@ -400,7 +414,7 @@ class CitationChecker:
         for citation in extracted_citations:
             base = self._strip_pincite(citation.normalized_citation or citation.raw_citation)
             cache_key = self._cache_key(base)
-            if cache_key in self._verification_cache:
+            if not self.disable_cache and cache_key in self._verification_cache:
                 cached_decisions[citation.index] = self._verification_cache[cache_key].clone()
                 self._log(f"Cache hit for citation {citation.index}: {citation.normalized_citation}")
             elif cache_key in seen_keys:
@@ -422,7 +436,7 @@ class CitationChecker:
                 for future in as_completed(future_map):
                     cit, key = future_map[future]
                     try:
-                        decision = future.result()
+                        decision = future.result(timeout=self.request_timeout * 3)
                     except Exception as exc:
                         decision = VerificationDecision(
                             status="Needs Review",
@@ -876,11 +890,11 @@ class CitationChecker:
             match_url = None
 
             if data and result_count > 0:
-                # With an exact quoted triplet + year, any result is a strong match.
-                results = data.get("results", [])
-                if results and isinstance(results, list) and isinstance(results[0], dict):
+                # Validate the result actually matches the citation.
+                matched_result = self._match_courtlistener_result(citation, data, base_citation)
+                if matched_result is not None:
                     success = True
-                    match_url = self._extract_result_url(results[0], base="https://www.courtlistener.com")
+                    match_url = self._extract_result_url(matched_result, base="https://www.courtlistener.com")
 
             attempts.append(
                 SearchAttempt(
@@ -915,10 +929,11 @@ class CitationChecker:
             match_url = None
 
             if data and result_count > 0 and result_count <= 50:
-                results = data.get("results", [])
-                if results and isinstance(results, list) and isinstance(results[0], dict):
+                # Validate the result actually matches the citation.
+                matched_result = self._match_courtlistener_result(citation, data, base_citation)
+                if matched_result is not None:
                     success = True
-                    match_url = self._extract_result_url(results[0], base="https://www.courtlistener.com")
+                    match_url = self._extract_result_url(matched_result, base="https://www.courtlistener.com")
 
             attempts.append(
                 SearchAttempt(
@@ -1019,7 +1034,6 @@ class CitationChecker:
             result_citations = (
                 result.get("citation")
                 or result.get("citations")
-                or result.get("citeCount")  # sometimes nested
                 or []
             )
             if isinstance(result_citations, str):
@@ -1226,21 +1240,6 @@ class CitationChecker:
             return citation.normalized_citation
         return " ".join(parts)
 
-    def _query_full_case_court_year(self, citation: ExtractedCitation) -> str:
-        case_name = self._case_name_from_metadata(citation.metadata)
-        court = str(citation.metadata.get("court") or "")
-        year = str(citation.metadata.get("year") or "")
-        parts = [part for part in [case_name, court, year] if part]
-        return " ".join(parts) if parts else citation.normalized_citation
-
-    def _query_parties_reporter_page(self, citation: ExtractedCitation) -> str:
-        plaintiff = str(citation.metadata.get("plaintiff") or "")
-        defendant = str(citation.metadata.get("defendant") or "")
-        triplet = self._reporter_triplet(citation.normalized_citation)
-        triplet_text = " ".join(triplet) if triplet else citation.normalized_citation
-        parts = [part for part in [plaintiff, defendant, triplet_text] if part]
-        return " ".join(parts) if parts else citation.normalized_citation
-
     def _case_name_from_metadata(self, metadata: Dict[str, Any]) -> str:
         plaintiff = str(metadata.get("plaintiff") or "").strip()
         defendant = str(metadata.get("defendant") or "").strip()
@@ -1410,4 +1409,4 @@ class CitationChecker:
 
     def _log(self, message: str) -> None:
         if self.verbose:
-            print(f"[citation-checker] {message}")
+            logger.debug(message)
