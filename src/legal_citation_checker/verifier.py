@@ -29,15 +29,18 @@ class CitationVerifier:
     """Verifies citations against CourtListener and secondary sources.
 
     Verification strategy:
-      Tier 1 — Citation number lookup (foolproof if positive).
-               CourtListener can be quirky about citation formats, so a
-               negative result does NOT mean the citation is fake.
-      Tier 2 — Party name search (requires fuzzy matching of results).
-               Searches by plaintiff/defendant names, then judges whether
-               the closest result actually matches our citation.
-      Tier 3 — Google Scholar / web docket fallback.
-      Final  — If all real "not found" → Potential Hallucination.
-               If all network errors → Needs Review.
+      Tier 1  — Citation number lookup (foolproof if positive).
+                CourtListener can be quirky about citation formats, so a
+                negative result does NOT mean the citation is fake.
+      Tier 2  — Party name search in opinions (requires fuzzy matching).
+                Searches by plaintiff/defendant names, then judges whether
+                the closest result actually matches our citation.
+      Tier 2b — CourtListener docket search (type=d).
+                Many state court cases have docket entries but no indexed
+                opinion.  This catches those.
+      Tier 3  — Google Scholar / web docket fallback.
+      Final   — If all real "not found" → Potential Hallucination.
+                If all network errors → Needs Review.
     """
 
     def __init__(self, session: Any, request_timeout: float = 8.0) -> None:
@@ -73,6 +76,20 @@ class CitationVerifier:
                 decision.confidence = min(decision.confidence, 80)
                 decision.evidence = (
                     f"Case verified via party name search. "
+                    f"The exact {'WL' if _WESTLAW_PATTERN.match(norm) else 'LEXIS'} "
+                    f"citation number could not be independently confirmed. "
+                    f"Original: {decision.evidence}"
+                )
+            return decision
+
+        # ── Tier 2b: CourtListener docket search (type=d) ────────────
+        decision = self._tier2b_docket_search(citation, attempts)
+        if decision is not None:
+            if is_vendor_cite:
+                decision.status = "Verified (case exists)"
+                decision.confidence = min(decision.confidence, 75)
+                decision.evidence = (
+                    f"Case verified via docket search. "
                     f"The exact {'WL' if _WESTLAW_PATTERN.match(norm) else 'LEXIS'} "
                     f"citation number could not be independently confirmed. "
                     f"Original: {decision.evidence}"
@@ -354,6 +371,135 @@ class CitationVerifier:
                 return self._verified_decision(
                     f"party_{party_role}", best[1] or url, best[0], attempts
                 )
+
+        return None
+
+    # ─── Tier 2b: CourtListener Docket Search ────────────────────────────
+
+    def _tier2b_docket_search(
+        self,
+        citation: ExtractedCitation,
+        attempts: List[SearchAttempt],
+    ) -> Optional[VerificationDecision]:
+        """Search CourtListener dockets (type=d) for cases not in opinions DB.
+
+        Many state court cases (especially NY, CA) and recently filed cases
+        have docket entries but no indexed opinion.  This tier catches those.
+        """
+        p = citation.parsed
+        case_name = p.case_name or case_name_from_metadata(citation.metadata)
+        if not case_name:
+            return None
+
+        # Build date filters from year
+        year_str = p.year or str(citation.metadata.get("year") or "").strip() or None
+        date_params: Dict[str, str] = {}
+        if year_str:
+            try:
+                y = int(year_str)
+                date_params["filed_after"] = f"{y - 1}-01-01"
+                date_params["filed_before"] = f"{y + 1}-12-31"
+            except ValueError:
+                pass
+
+        # Strategy: case_name in docket search
+        params: Dict[str, str] = {"q": f'"{case_name}"', "type": "d"}
+        params.update(date_params)
+        data, url, error = self._http_get_json(COURTLISTENER_SEARCH_BASE, params=params)
+        best = self._best_docket_match(data, citation) if data else None
+
+        attempts.append(SearchAttempt(
+            source="CourtListener",
+            strategy="docket_name",
+            query=f'"{case_name}" type=d',
+            success=best is not None,
+            result_count=_count_results(data) if data else 0,
+            url=(best[1] if best else None) or url,
+            details=f"Docket match: {best[2]}" if best else "No docket match",
+            error=error,
+        ))
+        if best is not None:
+            return self._verified_decision(
+                "docket_name", best[1] or url, best[0], attempts
+            )
+
+        # Strategy 2: individual party name in docket search
+        plaintiff = p.plaintiff or str(citation.metadata.get("plaintiff") or "").strip() or None
+        defendant = p.defendant or str(citation.metadata.get("defendant") or "").strip() or None
+        for party_role, party_name in [("plaintiff", plaintiff), ("defendant", defendant)]:
+            if not party_name or len(party_name) < 3:
+                continue
+            params = {"q": f'"{party_name}"', "type": "d"}
+            params.update(date_params)
+            data, url, error = self._http_get_json(COURTLISTENER_SEARCH_BASE, params=params)
+            best = self._best_docket_match(data, citation) if data else None
+
+            attempts.append(SearchAttempt(
+                source="CourtListener",
+                strategy=f"docket_{party_role}",
+                query=f'"{party_name}" type=d',
+                success=best is not None,
+                result_count=_count_results(data) if data else 0,
+                url=(best[1] if best else None) or url,
+                details=f"Docket {party_role} match: {best[2]}" if best else f"No docket {party_role} match",
+                error=error,
+            ))
+            if best is not None:
+                return self._verified_decision(
+                    f"docket_{party_role}", best[1] or url, best[0], attempts
+                )
+
+        return None
+
+    def _best_docket_match(
+        self,
+        data: Dict[str, Any],
+        citation: ExtractedCitation,
+    ) -> Optional[Tuple[int, Optional[str], str]]:
+        """Judge if any docket result matches our citation.
+
+        Docket results don't have citation lists, so matching relies on
+        case name fuzzy matching + year.  Lower confidence than opinion matches.
+        """
+        results = data.get("results") or []
+        if not results:
+            return None
+
+        p = citation.parsed
+        cited_name = p.case_name or case_name_from_metadata(citation.metadata)
+        year = p.year or str(citation.metadata.get("year") or "").strip() or None
+
+        for result in results[:10]:
+            # Docket results use "caseName" or "case_name"
+            result_name = (
+                result.get("caseName")
+                or result.get("case_name")
+                or result.get("caseNameFull")
+                or ""
+            )
+            result_date = str(result.get("dateFiled") or result.get("date_filed") or "")
+            year_ok = (not year) or (year in result_date)
+
+            docket_url = None
+            docket_id = result.get("docket_id") or result.get("id")
+            abs_url = result.get("absolute_url") or ""
+            if abs_url:
+                docket_url = f"https://www.courtlistener.com{abs_url}"
+            elif docket_id:
+                docket_url = f"https://www.courtlistener.com/docket/{docket_id}/"
+
+            if not result_name or not cited_name:
+                continue
+
+            overlap_ratio, overlap_count = _name_token_overlap(cited_name, result_name)
+
+            # Strong match: good token overlap + year
+            if (overlap_ratio >= 0.5 and overlap_count >= 2) and year_ok:
+                return (80, docket_url, f"docket token match ({overlap_count} tokens, {overlap_ratio:.0%}) + year")
+
+            # Moderate match: high overlap regardless of year
+            if overlap_ratio >= 0.8:
+                return (75, docket_url, f"docket token match ({overlap_count} tokens, {overlap_ratio:.0%})")
 
         return None
 

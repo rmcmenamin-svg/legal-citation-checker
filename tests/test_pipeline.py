@@ -471,6 +471,50 @@ class TestFuzzyNameMatching:
         decision = checker._verify_citation(citation)
         assert decision.status.startswith("Verified"), f"Expected Verified, got: {decision.status}"
 
+    def test_docket_search_verifies_case(self) -> None:
+        """Docket search (type=d) should verify a case not in opinions DB."""
+        checker = make_checker()
+        citation = make_citation(
+            raw="123 N.Y.S.3d 456",
+            normalized="123 N.Y.S.3d 456",
+            metadata={
+                "year": "2021",
+                "plaintiff": "Rodriguez",
+                "defendant": "NYC Housing Authority",
+            },
+        )
+
+        call_count = {"n": 0}
+
+        def mock_http_get(url: str, **kwargs: Any) -> Tuple[Dict[str, Any], str, None]:
+            call_count["n"] += 1
+            params = kwargs.get("params", {})
+            search_type = params.get("type", "")
+
+            # Opinion searches (type=o) return nothing
+            if search_type == "o":
+                return {"count": 0, "results": []}, "http://example.com", None
+
+            # Docket search (type=d) finds the case
+            if search_type == "d":
+                return {
+                    "count": 1,
+                    "results": [{
+                        "caseName": "Rodriguez v. New York City Housing Authority",
+                        "dateFiled": "2021-03-15",
+                        "docket_id": 12345,
+                        "absolute_url": "/docket/12345/rodriguez-v-nyc-housing/",
+                    }],
+                }, "http://example.com", None
+
+            return {"count": 0, "results": []}, "http://example.com", None
+
+        checker._verifier._http_get_json = mock_http_get  # type: ignore[assignment]
+        decision = checker._verify_citation(citation)
+        assert decision.status.startswith("Verified"), f"Expected Verified, got: {decision.status}"
+        # Should have reached docket search
+        assert any("docket" in a.strategy.lower() for a in decision.search_attempts)
+
 
 # ---------------------------------------------------------------------------
 
