@@ -148,6 +148,265 @@ MOCK_OPINION_DB = {
         "citation": ["94 A.3d 956"],
         "absolute_url": "/opinion/2998734/corwin-v-kkr-financial/",
     },
+    # ── Round 2: Employment Discrimination ──
+    "477 U.S. 57": {
+        "caseName": "Meritor Savings Bank, FSB v. Vinson",
+        "dateFiled": "1986-06-19",
+        "citation": ["477 U.S. 57"],
+        "absolute_url": "/opinion/111602/meritor-savings-bank-v-vinson/",
+    },
+    "510 U.S. 17": {
+        "caseName": "Harris v. Forklift Systems, Inc.",
+        "dateFiled": "1993-11-09",
+        "citation": ["510 U.S. 17"],
+        "absolute_url": "/opinion/112892/harris-v-forklift-systems/",
+    },
+    "411 U.S. 792": {
+        "caseName": "McDonnell Douglas Corp. v. Green",
+        "dateFiled": "1973-05-14",
+        "citation": ["411 U.S. 792"],
+        "absolute_url": "/opinion/108786/mcdonnell-douglas-v-green/",
+    },
+    "795 F.3d 297": {
+        "caseName": "Littlejohn v. City of New York",
+        "dateFiled": "2015-08-03",
+        "citation": ["795 F.3d 297"],
+        "absolute_url": "/opinion/3174894/littlejohn-v-city-of-new-york/",
+    },
+    "523 U.S. 75": {
+        "caseName": "Oncale v. Sundowner Offshore Services, Inc.",
+        "dateFiled": "1998-03-04",
+        "citation": ["523 U.S. 75"],
+        "absolute_url": "/opinion/118222/oncale-v-sundowner/",
+    },
+    "548 U.S. 53": {
+        "caseName": "Burlington Northern & Santa Fe Railway Co. v. White",
+        "dateFiled": "2006-06-22",
+        "citation": ["548 U.S. 53"],
+        "absolute_url": "/opinion/145652/burlington-northern-v-white/",
+    },
+    "524 U.S. 775": {
+        "caseName": "Faragher v. City of Boca Raton",
+        "dateFiled": "1998-06-26",
+        "citation": ["524 U.S. 775"],
+        "absolute_url": "/opinion/118273/faragher-v-city-of-boca-raton/",
+    },
+    "524 U.S. 742": {
+        "caseName": "Burlington Industries, Inc. v. Ellerth",
+        "dateFiled": "1998-06-26",
+        "citation": ["524 U.S. 742"],
+        "absolute_url": "/opinion/118272/burlington-industries-v-ellerth/",
+    },
+    "570 U.S. 421": {
+        "caseName": "Vance v. Ball State University",
+        "dateFiled": "2013-06-24",
+        "citation": ["570 U.S. 421"],
+        "absolute_url": "/opinion/1970981/vance-v-ball-state-university/",
+    },
+    "450 U.S. 248": {
+        "caseName": "Texas Dept. of Community Affairs v. Burdine",
+        "dateFiled": "1981-03-04",
+        "citation": ["450 U.S. 248"],
+        "absolute_url": "/opinion/110472/texas-dept-v-burdine/",
+    },
+    # ── Round 2: Contract Law ──
+    "198 U.S. 45": {
+        "caseName": "Lochner v. New York",
+        "dateFiled": "1905-04-17",
+        "citation": ["198 U.S. 45"],
+        "absolute_url": "/opinion/96405/lochner-v-new-york/",
+    },
+    "512 F.3d 86": {
+        "caseName": "Norfolk Southern Railway Co. v. Basell USA Inc.",
+        "dateFiled": "2008-01-09",
+        "citation": ["512 F.3d 86"],
+        "absolute_url": "/opinion/198426/norfolk-southern-v-basell/",
+    },
+    "530 U.S. 604": {
+        "caseName": "Mobil Oil Exploration & Producing Southeast, Inc. v. United States",
+        "dateFiled": "2000-06-26",
+        "citation": ["530 U.S. 604"],
+        "absolute_url": "/opinion/118391/mobil-oil-v-united-states/",
+    },
+    "379 F.3d 24": {
+        "caseName": "Lucent Technologies, Inc. v. Tatung Co.",
+        "dateFiled": "2004-08-03",
+        "citation": ["379 F.3d 24"],
+        "absolute_url": "/opinion/178234/lucent-technologies-v-tatung/",
+    },
+    "346 F. Supp. 2d 628": {
+        "caseName": "In re WorldCom, Inc. Securities Litigation",
+        "dateFiled": "2004-11-18",
+        "citation": ["346 F. Supp. 2d 628"],
+        "absolute_url": "/opinion/228673/in-re-worldcom/",
+    },
+    "878 A.2d 434": {
+        "caseName": "Dunlap v. State Farm Fire & Casualty Co.",
+        "dateFiled": "2005-06-01",
+        "citation": ["878 A.2d 434"],
+        "absolute_url": "/opinion/2639311/dunlap-v-state-farm/",
+    },
+    # ── Round 2: First Amendment ──
+    "408 U.S. 92": {
+        "caseName": "Police Dept. of City of Chicago v. Mosley",
+        "dateFiled": "1972-06-26",
+        "citation": ["408 U.S. 92"],
+        "absolute_url": "/opinion/108612/police-dept-v-mosley/",
+    },
+    "576 U.S. 155": {
+        "caseName": "Reed v. Town of Gilbert",
+        "dateFiled": "2015-06-18",
+        "citation": ["576 U.S. 155"],
+        "absolute_url": "/opinion/2931016/reed-v-town-of-gilbert/",
+    },
+    "408 U.S. 665": {
+        "caseName": "Branzburg v. Hayes",
+        "dateFiled": "1972-06-29",
+        "citation": ["408 U.S. 665"],
+        "absolute_url": "/opinion/108637/branzburg-v-hayes/",
+    },
+    "655 F.3d 78": {
+        "caseName": "Glik v. Cunniffe",
+        "dateFiled": "2011-08-26",
+        "citation": ["655 F.3d 78"],
+        "absolute_url": "/opinion/625839/glik-v-cunniffe/",
+    },
+    "573 U.S. 464": {
+        "caseName": "McCullen v. Coakley",
+        "dateFiled": "2014-06-26",
+        "citation": ["573 U.S. 464"],
+        "absolute_url": "/opinion/2648009/mccullen-v-coakley/",
+    },
+    "491 U.S. 781": {
+        "caseName": "Ward v. Rock Against Racism",
+        "dateFiled": "1989-06-22",
+        "citation": ["491 U.S. 781"],
+        "absolute_url": "/opinion/112338/ward-v-rock-against-racism/",
+    },
+    "283 U.S. 697": {
+        "caseName": "Near v. Minnesota ex rel. Olson",
+        "dateFiled": "1931-06-01",
+        "citation": ["283 U.S. 697"],
+        "absolute_url": "/opinion/101824/near-v-minnesota/",
+    },
+    "403 U.S. 713": {
+        "caseName": "New York Times Co. v. United States",
+        "dateFiled": "1971-06-30",
+        "citation": ["403 U.S. 713"],
+        "absolute_url": "/opinion/108369/new-york-times-v-united-states/",
+    },
+    "558 U.S. 310": {
+        "caseName": "Citizens United v. Federal Election Commission",
+        "dateFiled": "2010-01-21",
+        "citation": ["558 U.S. 310"],
+        "absolute_url": "/opinion/145741/citizens-united-v-fec/",
+    },
+    "512 U.S. 622": {
+        "caseName": "Turner Broadcasting System, Inc. v. FCC",
+        "dateFiled": "1994-06-27",
+        "citation": ["512 U.S. 622"],
+        "absolute_url": "/opinion/112932/turner-broadcasting-v-fcc/",
+    },
+    # ── Round 2: Immigration ──
+    "533 U.S. 678": {
+        "caseName": "Zadvydas v. Davis",
+        "dateFiled": "2001-06-28",
+        "citation": ["533 U.S. 678"],
+        "absolute_url": "/opinion/118465/zadvydas-v-davis/",
+    },
+    "583 U.S. 281": {
+        "caseName": "Jennings v. Rodriguez",
+        "dateFiled": "2018-02-27",
+        "citation": ["583 U.S. 281"],
+        "absolute_url": "/opinion/4387734/jennings-v-rodriguez/",
+    },
+    "804 F.3d 1060": {
+        "caseName": "Rodriguez v. Robbins",
+        "dateFiled": "2015-10-28",
+        "citation": ["804 F.3d 1060"],
+        "absolute_url": "/opinion/3207012/rodriguez-v-robbins/",
+    },
+    "638 F.3d 1196": {
+        "caseName": "Singh v. Holder",
+        "dateFiled": "2011-04-12",
+        "citation": ["638 F.3d 1196"],
+        "absolute_url": "/opinion/601891/singh-v-holder/",
+    },
+    "543 U.S. 371": {
+        "caseName": "Clark v. Martinez",
+        "dateFiled": "2005-01-12",
+        "citation": ["543 U.S. 371"],
+        "absolute_url": "/opinion/137744/clark-v-martinez/",
+    },
+    "596 U.S. 573": {
+        "caseName": "Johnson v. Arteaga-Martinez",
+        "dateFiled": "2022-06-13",
+        "citation": ["596 U.S. 573"],
+        "absolute_url": "/opinion/4626873/johnson-v-arteaga-martinez/",
+    },
+    "538 U.S. 510": {
+        "caseName": "Demore v. Kim",
+        "dateFiled": "2003-04-29",
+        "citation": ["538 U.S. 510"],
+        "absolute_url": "/opinion/127910/demore-v-kim/",
+    },
+    "634 F.3d 1081": {
+        "caseName": "Diouf v. Napolitano",
+        "dateFiled": "2011-03-14",
+        "citation": ["634 F.3d 1081"],
+        "absolute_url": "/opinion/591182/diouf-v-napolitano/",
+    },
+    # ── Round 2: Sneaky Brief (real cases correctly cited) ──
+    "556 U.S. 662": {
+        "caseName": "Ashcroft v. Iqbal",
+        "dateFiled": "2009-05-18",
+        "citation": ["556 U.S. 662"],
+        "absolute_url": "/opinion/145875/ashcroft-v-iqbal/",
+    },
+    "550 U.S. 544": {
+        "caseName": "Bell Atlantic Corp. v. Twombly",
+        "dateFiled": "2007-05-21",
+        "citation": ["550 U.S. 544"],
+        "absolute_url": "/opinion/145711/bell-atlantic-v-twombly/",
+    },
+    "114 F.3d 1410": {
+        "caseName": "In re Burlington Coat Factory Securities Litigation",
+        "dateFiled": "1997-06-11",
+        "citation": ["114 F.3d 1410"],
+        "absolute_url": "/opinion/745671/in-re-burlington-coat-factory/",
+    },
+    "476 U.S. 858": {
+        "caseName": "East River Steamship Corp. v. Transamerica Delaval Inc.",
+        "dateFiled": "1986-06-16",
+        "citation": ["476 U.S. 858"],
+        "absolute_url": "/opinion/111582/east-river-steamship-v-transamerica/",
+    },
+    "573 U.S. 682": {
+        "caseName": "Burwell v. Hobby Lobby Stores, Inc.",
+        "dateFiled": "2014-06-30",
+        "citation": ["573 U.S. 682"],
+        "absolute_url": "/opinion/2648010/burwell-v-hobby-lobby/",
+    },
+    "534 U.S. 204": {
+        "caseName": "Great-West Life & Annuity Insurance Co. v. Knudson",
+        "dateFiled": "2002-01-08",
+        "citation": ["534 U.S. 204"],
+        "absolute_url": "/opinion/118503/great-west-life-v-knudson/",
+    },
+    # Sneaky: The REAL Dura Pharmaceuticals at its correct cite
+    "544 U.S. 336": {
+        "caseName": "Dura Pharmaceuticals, Inc. v. Broudo",
+        "dateFiled": "2005-04-19",
+        "citation": ["544 U.S. 336"],
+        "absolute_url": "/opinion/137800/dura-pharmaceuticals-v-broudo/",
+    },
+    # Sneaky: The REAL Tellabs at its correct cite
+    "551 U.S. 308": {
+        "caseName": "Tellabs, Inc. v. Makor Issues & Rights, Ltd.",
+        "dateFiled": "2007-06-21",
+        "citation": ["551 U.S. 308"],
+        "absolute_url": "/opinion/145723/tellabs-v-makor-issues/",
+    },
 }
 
 # Known fake citations (should NOT be in the database)
@@ -164,6 +423,21 @@ KNOWN_FAKES = {
     "892 F.3d 1147", "567 U.S. 234", "445 F.3d 891", "789 F. Supp. 3d 456",
     # mixed_brief fakes
     "834 F.3d 1289", "512 F. Supp. 3d 789",
+    # Round 2: Employment discrimination fakes
+    "867 F.3d 1034", "538 F. Supp. 3d 445", "912 F.3d 678", "743 F. Supp. 3d 892",
+    # Round 2: Contract law fakes
+    "934 F.3d 567", "678 F. Supp. 3d 234", "845 F.3d 1122", "567 F. Supp. 3d 891",
+    # Round 2: First Amendment fakes
+    "891 F.3d 567", "823 F.3d 445", "945 F.3d 789",
+    # Round 2: Immigration fakes
+    "956 F.3d 1108", "834 F. Supp. 3d 567",
+    # Round 2: Sneaky brief — real case names with WRONG citation numbers
+    "552 U.S. 148",   # Dura Pharmaceuticals (real is 544 U.S. 336)
+    "549 U.S. 457",   # Tellabs (real is 551 U.S. 308)
+    "249 F.2d 458",   # Meinhard v. Salmon (real is 164 N.E. 545)
+    "456 F.3d 823",   # Brophy v. Cities Service (real is 70 A.2d 5)
+    "763 F.3d 209",   # Gutter v. Bollman (fully fake)
+    "607 F.3d 356",   # Kottler v. Deutsche Bank (fully fake)
 }
 
 
@@ -268,6 +542,17 @@ def run_mocked_test():
     if fake_dir.exists():
         for f in sorted(fake_dir.glob("FAKE-*.docx")):
             briefs.append(("fake", f))
+
+    # Round 2 briefs
+    round2_dir = root / "tests" / "test_documents" / "round2"
+    if round2_dir.exists():
+        for f in sorted(round2_dir.glob("*.docx")):
+            if "sneaky" in f.name:
+                briefs.append(("sneaky", f))
+            elif "employment" in f.name or "contract" in f.name or "first_amendment" in f.name or "immigration" in f.name:
+                briefs.append(("mixed", f))
+            else:
+                briefs.append(("unknown", f))
 
     del_brief = root / "delaware_derivative_brief.docx"
     if del_brief.exists():

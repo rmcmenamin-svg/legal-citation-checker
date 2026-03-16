@@ -460,6 +460,10 @@ class CitationVerifier:
 
         Docket results don't have citation lists, so matching relies on
         case name fuzzy matching + year.  Lower confidence than opinion matches.
+
+        To guard against "real name, wrong citation" hallucinations, when a
+        docket match is found we do a follow-up opinion lookup on the matched
+        case name to verify the citation number actually exists for that case.
         """
         results = data.get("results") or []
         if not results:
@@ -468,6 +472,8 @@ class CitationVerifier:
         p = citation.parsed
         cited_name = p.case_name or case_name_from_metadata(citation.metadata)
         year = p.year or str(citation.metadata.get("year") or "").strip() or None
+        base = p.base_citation or strip_pincite(citation.normalized_citation)
+        target_triplet = reporter_triplet(base) if base else None
 
         for result in results[:10]:
             # Docket results use "caseName" or "case_name"
@@ -496,12 +502,44 @@ class CitationVerifier:
             # Strong match: good token overlap + year
             # Require at least 2 overlapping tokens to avoid false positives
             # from common single-word names (Smith, Jones, etc.)
+            matched = False
             if (overlap_ratio >= 0.5 and overlap_count >= 2) and year_ok:
-                return (80, docket_url, f"docket token match ({overlap_count} tokens, {overlap_ratio:.0%}) + year")
+                matched = True
+            elif overlap_ratio >= 0.8 and overlap_count >= 2:
+                matched = True
 
-            # Moderate match: high overlap regardless of year (still need 2+ tokens)
-            if overlap_ratio >= 0.8 and overlap_count >= 2:
-                return (75, docket_url, f"docket token match ({overlap_count} tokens, {overlap_ratio:.0%})")
+            if matched:
+                # Cross-check: look up the matched case by name in opinions
+                # to verify the citation number actually belongs to this case.
+                if target_triplet and result_name:
+                    verify_data, _, _ = self._http_get_json(
+                        COURTLISTENER_SEARCH_BASE,
+                        params={"case_name": result_name, "type": "o"},
+                    )
+                    if verify_data:
+                        verify_results = verify_data.get("results") or []
+                        for vr in verify_results[:5]:
+                            vr_cites = _get_citation_strings(vr)
+                            if vr_cites:
+                                # This case has known citations — check if ours is among them
+                                has_our_cite = any(
+                                    _citations_equivalent(cs, base, target_triplet)
+                                    for cs in vr_cites
+                                )
+                                if not has_our_cite:
+                                    # Case exists under different citation — wrong cite
+                                    logger.debug(
+                                        f"Docket match for '{result_name}' rejected: "
+                                        f"case exists but citation {base} not found in "
+                                        f"known citations {vr_cites}"
+                                    )
+                                    return None  # reject — likely wrong citation number
+
+                conf = 80 if year_ok else 75
+                reason = f"docket token match ({overlap_count} tokens, {overlap_ratio:.0%})"
+                if year_ok:
+                    reason += " + year"
+                return (conf, docket_url, reason)
 
         return None
 
@@ -567,6 +605,12 @@ class CitationVerifier:
                             for cite_str in result_cites:
                                 if triplet_match(cite_str, target_triplet):
                                     return (90, result_url, f"token match ({overlap_count} tokens, {overlap_ratio:.0%}) + triplet")
+                        # If the result HAS citations but none match ours,
+                        # the case exists but the citation number is wrong —
+                        # a common LLM hallucination pattern.
+                        if result_cites and target_triplet:
+                            # Case name matches but citation doesn't — likely wrong cite
+                            return None  # skip; will be caught as mismatch below
                         return (85, result_url, f"token match ({overlap_count} tokens, {overlap_ratio:.0%}) + year")
 
                 # Method B: Substring fallback for cases where only party names are available
@@ -580,6 +624,10 @@ class CitationVerifier:
                             for cite_str in result_cites:
                                 if triplet_match(cite_str, target_triplet):
                                     return (85, result_url, f"parties + triplet match")
+                        # If result has citations but none match, case exists
+                        # under a different citation — wrong cite hallucination.
+                        if result_cites and target_triplet:
+                            return None
                         return (85, result_url, f"parties ({plaintiff}, {defendant}) + year match")
 
                     # Method C: Single party + token overlap (weaker but still useful)
