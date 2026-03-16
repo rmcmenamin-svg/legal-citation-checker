@@ -1,0 +1,626 @@
+[
+  {
+    "file": "llm_generated_brief.docx",
+    "time_seconds": 1.35,
+    "total_citations": 18,
+    "verified": [],
+    "hallucinations": [],
+    "needs_review": [],
+    "skipped": [
+      {
+        "raw": "389 U.S. 347",
+        "normalized": "389 U.S. 347",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "585 U.S. 296",
+        "normalized": "585 U.S. 296",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "847 F.3d 1203",
+        "normalized": "847 F.3d 1203",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "612 F. Supp. 3d 894",
+        "normalized": "612 F. Supp. 3d 894",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "573 U.S. 373",
+        "normalized": "573 U.S. 373",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "442 U.S. 735",
+        "normalized": "442 U.S. 735",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "923 F.3d 1108",
+        "normalized": "923 F.3d 1108",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "198 F. Supp. 3d 1142",
+        "normalized": "198 F. Supp. 3d 1142",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "556 U.S. 332",
+        "normalized": "556 U.S. 332",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "437 U.S. 385",
+        "normalized": "437 U.S. 385",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "489 U.S. 602",
+        "normalized": "489 U.S. 602",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "891 F.3d 445",
+        "normalized": "891 F.3d 445",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "756 F.3d 1087",
+        "normalized": "756 F.3d 1087",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "578 U.S. 330",
+        "normalized": "578 U.S. 330",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "594 U.S. 413",
+        "normalized": "594 U.S. 413",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "834 F.3d 921",
+        "normalized": "834 F.3d 921",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "743 F. Supp. 3d 201",
+        "normalized": "743 F. Supp. 3d 201",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "565 U.S. 400",
+        "normalized": "565 U.S. 400",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      }
+    ],
+    "type": "llm"
+  },
+  {
+    "file": "FAKE-Deckers-Test-Brief.docx",
+    "time_seconds": 0.52,
+    "total_citations": 10,
+    "verified": [],
+    "hallucinations": [],
+    "needs_review": [],
+    "skipped": [
+      {
+        "raw": "123 Cal. App. 5th 456",
+        "normalized": "123 Cal. App. 5th 456",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "999 Cal. 888",
+        "normalized": "999 Cal. 888",
+        "confidence": 90,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "88 Cal. 5th 1111",
+        "normalized": "88 Cal. 5th 1111",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "303 Cal. App. 5th 2222",
+        "normalized": "303 Cal. App. 5th 2222",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "999 U.S. 123",
+        "normalized": "999 U.S. 123",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "101 Cal. 4th 555",
+        "normalized": "101 Cal. 4th 555",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "456 F.3d 789",
+        "normalized": "456 F.3d 789",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "77 Cal.App.6th 777",
+        "normalized": "77 Cal.App.6th 777",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "789 Cal.App.7th 333",
+        "normalized": "789 Cal.App.7th 333",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "222 Cal.App.8th 444",
+        "normalized": "222 Cal.App.8th 444",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      }
+    ],
+    "type": "fake"
+  },
+  {
+    "file": "FAKE-Tapestry-Test-Brief.docx",
+    "time_seconds": 0.02,
+    "total_citations": 10,
+    "verified": [],
+    "hallucinations": [],
+    "needs_review": [],
+    "skipped": [
+      {
+        "raw": "123 Cal. App. 5th 456",
+        "normalized": "123 Cal. App. 5th 456",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "999 Cal. 888",
+        "normalized": "999 Cal. 888",
+        "confidence": 90,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "88 Cal. 5th 1111",
+        "normalized": "88 Cal. 5th 1111",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "303 Cal. App. 5th 2222",
+        "normalized": "303 Cal. App. 5th 2222",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "999 U.S. 123",
+        "normalized": "999 U.S. 123",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "101 Cal. 4th 555",
+        "normalized": "101 Cal. 4th 555",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "456 F.3d 789",
+        "normalized": "456 F.3d 789",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "77 Cal.App.6th 777",
+        "normalized": "77 Cal.App.6th 777",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "789 Cal.App.7th 333",
+        "normalized": "789 Cal.App.7th 333",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "222 Cal.App.8th 444",
+        "normalized": "222 Cal.App.8th 444",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      }
+    ],
+    "type": "fake"
+  },
+  {
+    "file": "FAKE-Wang-Test-Brief.docx",
+    "time_seconds": 0.01,
+    "total_citations": 10,
+    "verified": [],
+    "hallucinations": [],
+    "needs_review": [],
+    "skipped": [
+      {
+        "raw": "123 Cal. App. 5th 456",
+        "normalized": "123 Cal. App. 5th 456",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "999 Cal. 888",
+        "normalized": "999 Cal. 888",
+        "confidence": 90,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "88 Cal. 5th 1111",
+        "normalized": "88 Cal. 5th 1111",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "303 Cal. App. 5th 2222",
+        "normalized": "303 Cal. App. 5th 2222",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "999 U.S. 123",
+        "normalized": "999 U.S. 123",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "101 Cal. 4th 555",
+        "normalized": "101 Cal. 4th 555",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "456 F.3d 789",
+        "normalized": "456 F.3d 789",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "77 Cal.App.6th 777",
+        "normalized": "77 Cal.App.6th 777",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "789 Cal.App.7th 333",
+        "normalized": "789 Cal.App.7th 333",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "222 Cal.App.8th 444",
+        "normalized": "222 Cal.App.8th 444",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      }
+    ],
+    "type": "fake"
+  },
+  {
+    "file": "FAKE-Xu-Test-Brief.docx",
+    "time_seconds": 0.02,
+    "total_citations": 10,
+    "verified": [],
+    "hallucinations": [],
+    "needs_review": [],
+    "skipped": [
+      {
+        "raw": "123 Cal. App. 5th 456",
+        "normalized": "123 Cal. App. 5th 456",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "999 Cal. 888",
+        "normalized": "999 Cal. 888",
+        "confidence": 90,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "88 Cal. 5th 1111",
+        "normalized": "88 Cal. 5th 1111",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "303 Cal. App. 5th 2222",
+        "normalized": "303 Cal. App. 5th 2222",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "999 U.S. 123",
+        "normalized": "999 U.S. 123",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "101 Cal. 4th 555",
+        "normalized": "101 Cal. 4th 555",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "456 F.3d 789",
+        "normalized": "456 F.3d 789",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "77 Cal.App.6th 777",
+        "normalized": "77 Cal.App.6th 777",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "789 Cal.App.7th 333",
+        "normalized": "789 Cal.App.7th 333",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "222 Cal.App.8th 444",
+        "normalized": "222 Cal.App.8th 444",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      }
+    ],
+    "type": "fake"
+  },
+  {
+    "file": "delaware_derivative_brief.docx",
+    "time_seconds": 0.13,
+    "total_citations": 4,
+    "verified": [],
+    "hallucinations": [],
+    "needs_review": [],
+    "skipped": [
+      {
+        "raw": "473 A.2d 805",
+        "normalized": "473 A.2d 805",
+        "confidence": 90,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "73 A.3d 697",
+        "normalized": "73 A.3d 697",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "94 A.3d 956",
+        "normalized": "94 A.3d 956",
+        "confidence": 90,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "2013 WL 5525877",
+        "normalized": "2013 WL 5525877",
+        "confidence": 0,
+        "source": null,
+        "evidence": "WL citation could not be verified: no matching case found via party name search on CourtListener, Go"
+      }
+    ],
+    "type": "unknown"
+  },
+  {
+    "file": "hallucinated_brief.docx",
+    "time_seconds": 0.25,
+    "total_citations": 4,
+    "verified": [],
+    "hallucinations": [],
+    "needs_review": [],
+    "skipped": [
+      {
+        "raw": "892 F.3d 1147",
+        "normalized": "892 F.3d 1147",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "567 U.S. 234",
+        "normalized": "567 U.S. 234",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "445 F.3d 891",
+        "normalized": "445 F.3d 891",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "789 F. Supp. 3d 456",
+        "normalized": "789 F. Supp. 3d 456",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      }
+    ],
+    "type": "test"
+  },
+  {
+    "file": "mixed_brief.docx",
+    "time_seconds": 0.24,
+    "total_citations": 4,
+    "verified": [],
+    "hallucinations": [],
+    "needs_review": [],
+    "skipped": [
+      {
+        "raw": "376 U.S. 254",
+        "normalized": "376 U.S. 254",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "834 F.3d 1289",
+        "normalized": "834 F.3d 1289",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "384 U.S. 436",
+        "normalized": "384 U.S. 436",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "512 F. Supp. 3d 789",
+        "normalized": "512 F. Supp. 3d 789",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      }
+    ],
+    "type": "test"
+  },
+  {
+    "file": "real_brief.docx",
+    "time_seconds": 0.29,
+    "total_citations": 5,
+    "verified": [],
+    "hallucinations": [],
+    "needs_review": [],
+    "skipped": [
+      {
+        "raw": "347 U.S. 483",
+        "normalized": "347 U.S. 483",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "372 U.S. 335",
+        "normalized": "372 U.S. 335",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "466 U.S. 668",
+        "normalized": "466 U.S. 668",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "367 U.S. 643",
+        "normalized": "367 U.S. 643",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      },
+      {
+        "raw": "232 U.S. 383",
+        "normalized": "232 U.S. 383",
+        "confidence": 92,
+        "source": null,
+        "evidence": "CourtListener:citation_field failed (HTTPSConnectionPool(host='www.courtlistener.com', port=443): Ma"
+      }
+    ],
+    "type": "test"
+  }
+]
