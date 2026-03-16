@@ -2,7 +2,7 @@
   {
     "file": "llm_generated_brief.docx",
     "type": "llm",
-    "time": 0.51,
+    "time": 0.52,
     "total": 18,
     "verified": 10,
     "hallucination": 8,
@@ -122,7 +122,7 @@
   {
     "file": "FAKE-Deckers-Test-Brief.docx",
     "type": "fake",
-    "time": 0.16,
+    "time": 0.17,
     "total": 10,
     "verified": 0,
     "hallucination": 10,
@@ -194,7 +194,7 @@
   {
     "file": "FAKE-Tapestry-Test-Brief.docx",
     "type": "fake",
-    "time": 0.02,
+    "time": 0.01,
     "total": 10,
     "verified": 0,
     "hallucination": 10,
@@ -266,7 +266,7 @@
   {
     "file": "FAKE-Wang-Test-Brief.docx",
     "type": "fake",
-    "time": 0.03,
+    "time": 0.06,
     "total": 10,
     "verified": 0,
     "hallucination": 10,
@@ -410,7 +410,7 @@
   {
     "file": "contract_breach_brief.docx",
     "type": "mixed",
-    "time": 0.24,
+    "time": 0.2,
     "total": 12,
     "verified": 6,
     "hallucination": 6,
@@ -494,7 +494,7 @@
   {
     "file": "employment_discrimination_brief.docx",
     "type": "mixed",
-    "time": 0.15,
+    "time": 0.14,
     "total": 14,
     "verified": 10,
     "hallucination": 4,
@@ -680,7 +680,7 @@
   {
     "file": "immigration_habeas_brief.docx",
     "type": "mixed",
-    "time": 0.09,
+    "time": 0.08,
     "total": 11,
     "verified": 8,
     "hallucination": 3,
@@ -758,7 +758,7 @@
   {
     "file": "sneaky_hallucination_brief.docx",
     "type": "sneaky",
-    "time": 0.2,
+    "time": 0.21,
     "total": 12,
     "verified": 6,
     "hallucination": 6,
@@ -842,7 +842,7 @@
   {
     "file": "delaware_derivative_brief.docx",
     "type": "real",
-    "time": 0.04,
+    "time": 0.05,
     "total": 4,
     "verified": 3,
     "hallucination": 0,
