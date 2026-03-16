@@ -494,11 +494,13 @@ class CitationVerifier:
             overlap_ratio, overlap_count = _name_token_overlap(cited_name, result_name)
 
             # Strong match: good token overlap + year
+            # Require at least 2 overlapping tokens to avoid false positives
+            # from common single-word names (Smith, Jones, etc.)
             if (overlap_ratio >= 0.5 and overlap_count >= 2) and year_ok:
                 return (80, docket_url, f"docket token match ({overlap_count} tokens, {overlap_ratio:.0%}) + year")
 
-            # Moderate match: high overlap regardless of year
-            if overlap_ratio >= 0.8:
+            # Moderate match: high overlap regardless of year (still need 2+ tokens)
+            if overlap_ratio >= 0.8 and overlap_count >= 2:
                 return (75, docket_url, f"docket token match ({overlap_count} tokens, {overlap_ratio:.0%})")
 
         return None

@@ -1,0 +1,560 @@
+[
+  {
+    "file": "llm_generated_brief.docx",
+    "type": "llm",
+    "time": 0.51,
+    "total": 18,
+    "verified": 10,
+    "hallucination": 8,
+    "needs_review": 0,
+    "skipped": 0,
+    "citations": [
+      {
+        "raw": "389 U.S. 347",
+        "status": "Verified (CourtListener)",
+        "confidence": 95,
+        "evidence": "CourtListener citation_field returned a matching result."
+      },
+      {
+        "raw": "585 U.S. 296",
+        "status": "Verified (CourtListener)",
+        "confidence": 95,
+        "evidence": "CourtListener citation_field returned a matching result."
+      },
+      {
+        "raw": "847 F.3d 1203",
+        "status": "Potential Hallucination",
+        "confidence": 92,
+        "evidence": "CourtListener:citation_field failed; CourtListener:citation_query failed; CourtListener:citation_no_periods failed; CourtListener:party_name_field failed; CourtListener:party_name_quoted failed; Court"
+      },
+      {
+        "raw": "612 F. Supp. 3d 894",
+        "status": "Potential Hallucination",
+        "confidence": 92,
+        "evidence": "CourtListener:citation_field failed; CourtListener:citation_query failed; CourtListener:citation_no_periods failed; CourtListener:party_name_field failed; CourtListener:party_name_quoted failed; Court"
+      },
+      {
+        "raw": "573 U.S. 373",
+        "status": "Verified (CourtListener)",
+        "confidence": 95,
+        "evidence": "CourtListener citation_field returned a matching result."
+      },
+      {
+        "raw": "442 U.S. 735",
+        "status": "Verified (CourtListener)",
+        "confidence": 95,
+        "evidence": "CourtListener citation_field returned a matching result."
+      },
+      {
+        "raw": "923 F.3d 1108",
+        "status": "Potential Hallucination",
+        "confidence": 92,
+        "evidence": "CourtListener:citation_field failed; CourtListener:citation_query failed; CourtListener:citation_no_periods failed; CourtListener:party_name_field failed; CourtListener:party_name_quoted failed; Court"
+      },
+      {
+        "raw": "198 F. Supp. 3d 1142",
+        "status": "Potential Hallucination",
+        "confidence": 92,
+        "evidence": "CourtListener:citation_field failed; CourtListener:citation_query failed; CourtListener:citation_no_periods failed; CourtListener:party_name_field failed; CourtListener:party_name_quoted failed; Court"
+      },
+      {
+        "raw": "556 U.S. 332",
+        "status": "Verified (CourtListener)",
+        "confidence": 95,
+        "evidence": "CourtListener citation_field returned a matching result."
+      },
+      {
+        "raw": "437 U.S. 385",
+        "status": "Verified (CourtListener)",
+        "confidence": 95,
+        "evidence": "CourtListener citation_field returned a matching result."
+      },
+      {
+        "raw": "489 U.S. 602",
+        "status": "Verified (CourtListener)",
+        "confidence": 95,
+        "evidence": "CourtListener citation_field returned a matching result."
+      },
+      {
+        "raw": "891 F.3d 445",
+        "status": "Potential Hallucination",
+        "confidence": 92,
+        "evidence": "CourtListener:citation_field failed; CourtListener:citation_query failed; CourtListener:citation_no_periods failed; CourtListener:party_name_field failed; CourtListener:party_name_quoted failed; Court"
+      },
+      {
+        "raw": "756 F.3d 1087",
+        "status": "Potential Hallucination",
+        "confidence": 92,
+        "evidence": "CourtListener:citation_field failed; CourtListener:citation_query failed; CourtListener:citation_no_periods failed; CourtListener:party_name_field failed; CourtListener:party_name_quoted failed; Court"
+      },
+      {
+        "raw": "578 U.S. 330",
+        "status": "Verified (CourtListener)",
+        "confidence": 95,
+        "evidence": "CourtListener citation_field returned a matching result."
+      },
+      {
+        "raw": "594 U.S. 413",
+        "status": "Verified (CourtListener)",
+        "confidence": 95,
+        "evidence": "CourtListener citation_field returned a matching result."
+      },
+      {
+        "raw": "834 F.3d 921",
+        "status": "Potential Hallucination",
+        "confidence": 92,
+        "evidence": "CourtListener:citation_field failed; CourtListener:citation_query failed; CourtListener:citation_no_periods failed; CourtListener:party_name_field failed; CourtListener:party_name_quoted failed; Court"
+      },
+      {
+        "raw": "743 F. Supp. 3d 201",
+        "status": "Potential Hallucination",
+        "confidence": 92,
+        "evidence": "CourtListener:citation_field failed; CourtListener:citation_query failed; CourtListener:citation_no_periods failed; CourtListener:party_name_field failed; CourtListener:party_name_quoted failed; Court"
+      },
+      {
+        "raw": "565 U.S. 400",
+        "status": "Verified (CourtListener)",
+        "confidence": 95,
+        "evidence": "CourtListener citation_field returned a matching result."
+      }
+    ]
+  },
+  {
+    "file": "FAKE-Deckers-Test-Brief.docx",
+    "type": "fake",
+    "time": 0.15,
+    "total": 10,
+    "verified": 0,
+    "hallucination": 10,
+    "needs_review": 0,
+    "skipped": 0,
+    "citations": [
+      {
+        "raw": "123 Cal. App. 5th 456",
+        "status": "Potential Hallucination",
+        "confidence": 92,
+        "evidence": "CourtListener:citation_field failed; CourtListener:citation_query failed; CourtListener:citation_no_periods failed; CourtListener:party_name_field failed; CourtListener:party_name_quoted failed; Court"
+      },
+      {
+        "raw": "999 Cal. 888",
+        "status": "Potential Hallucination",
+        "confidence": 90,
+        "evidence": "CourtListener:citation_field failed; CourtListener:citation_query failed; CourtListener:citation_no_periods failed; CourtListener:party_name failed; Google Scholar:scholar_citation failed (HTTPSConnec"
+      },
+      {
+        "raw": "88 Cal. 5th 1111",
+        "status": "Potential Hallucination",
+        "confidence": 92,
+        "evidence": "CourtListener:citation_field failed; CourtListener:citation_query failed; CourtListener:citation_no_periods failed; CourtListener:party_name_field failed; CourtListener:party_name_quoted failed; Court"
+      },
+      {
+        "raw": "303 Cal. App. 5th 2222",
+        "status": "Potential Hallucination",
+        "confidence": 92,
+        "evidence": "CourtListener:citation_field failed; CourtListener:citation_query failed; CourtListener:citation_no_periods failed; CourtListener:party_name_field failed; CourtListener:party_name_quoted failed; Court"
+      },
+      {
+        "raw": "999 U.S. 123",
+        "status": "Potential Hallucination",
+        "confidence": 92,
+        "evidence": "CourtListener:citation_field failed; CourtListener:citation_query failed; CourtListener:citation_no_periods failed; CourtListener:party_name_field failed; CourtListener:party_name_quoted failed; Court"
+      },
+      {
+        "raw": "101 Cal. 4th 555",
+        "status": "Potential Hallucination",
+        "confidence": 92,
+        "evidence": "CourtListener:citation_field failed; CourtListener:citation_query failed; CourtListener:citation_no_periods failed; CourtListener:party_name_field failed; CourtListener:party_name_quoted failed; Court"
+      },
+      {
+        "raw": "456 F.3d 789",
+        "status": "Potential Hallucination",
+        "confidence": 92,
+        "evidence": "CourtListener:citation_field failed; CourtListener:citation_query failed; CourtListener:citation_no_periods failed; CourtListener:party_name_field failed; CourtListener:party_name_quoted failed; Court"
+      },
+      {
+        "raw": "77 Cal.App.6th 777",
+        "status": "Potential Hallucination",
+        "confidence": 92,
+        "evidence": "CourtListener:citation_field failed; CourtListener:citation_query failed; CourtListener:citation_no_periods failed; CourtListener:party_name_field failed; CourtListener:party_name_quoted failed; Court"
+      },
+      {
+        "raw": "789 Cal.App.7th 333",
+        "status": "Potential Hallucination",
+        "confidence": 92,
+        "evidence": "CourtListener:citation_field failed; CourtListener:citation_query failed; CourtListener:citation_no_periods failed; CourtListener:party_name_field failed; CourtListener:party_name_quoted failed; Court"
+      },
+      {
+        "raw": "222 Cal.App.8th 444",
+        "status": "Potential Hallucination",
+        "confidence": 92,
+        "evidence": "CourtListener:citation_field failed; CourtListener:citation_query failed; CourtListener:citation_no_periods failed; CourtListener:party_name_field failed; CourtListener:party_name_quoted failed; Court"
+      }
+    ]
+  },
+  {
+    "file": "FAKE-Tapestry-Test-Brief.docx",
+    "type": "fake",
+    "time": 0.02,
+    "total": 10,
+    "verified": 0,
+    "hallucination": 10,
+    "needs_review": 0,
+    "skipped": 0,
+    "citations": [
+      {
+        "raw": "123 Cal. App. 5th 456",
+        "status": "Potential Hallucination",
+        "confidence": 92,
+        "evidence": "CourtListener:citation_field failed; CourtListener:citation_query failed; CourtListener:citation_no_periods failed; CourtListener:party_name_field failed; CourtListener:party_name_quoted failed; Court"
+      },
+      {
+        "raw": "999 Cal. 888",
+        "status": "Potential Hallucination",
+        "confidence": 90,
+        "evidence": "CourtListener:citation_field failed; CourtListener:citation_query failed; CourtListener:citation_no_periods failed; CourtListener:party_name failed; Google Scholar:scholar_citation failed (HTTPSConnec"
+      },
+      {
+        "raw": "88 Cal. 5th 1111",
+        "status": "Potential Hallucination",
+        "confidence": 92,
+        "evidence": "CourtListener:citation_field failed; CourtListener:citation_query failed; CourtListener:citation_no_periods failed; CourtListener:party_name_field failed; CourtListener:party_name_quoted failed; Court"
+      },
+      {
+        "raw": "303 Cal. App. 5th 2222",
+        "status": "Potential Hallucination",
+        "confidence": 92,
+        "evidence": "CourtListener:citation_field failed; CourtListener:citation_query failed; CourtListener:citation_no_periods failed; CourtListener:party_name_field failed; CourtListener:party_name_quoted failed; Court"
+      },
+      {
+        "raw": "999 U.S. 123",
+        "status": "Potential Hallucination",
+        "confidence": 92,
+        "evidence": "CourtListener:citation_field failed; CourtListener:citation_query failed; CourtListener:citation_no_periods failed; CourtListener:party_name_field failed; CourtListener:party_name_quoted failed; Court"
+      },
+      {
+        "raw": "101 Cal. 4th 555",
+        "status": "Potential Hallucination",
+        "confidence": 92,
+        "evidence": "CourtListener:citation_field failed; CourtListener:citation_query failed; CourtListener:citation_no_periods failed; CourtListener:party_name_field failed; CourtListener:party_name_quoted failed; Court"
+      },
+      {
+        "raw": "456 F.3d 789",
+        "status": "Potential Hallucination",
+        "confidence": 92,
+        "evidence": "CourtListener:citation_field failed; CourtListener:citation_query failed; CourtListener:citation_no_periods failed; CourtListener:party_name_field failed; CourtListener:party_name_quoted failed; Court"
+      },
+      {
+        "raw": "77 Cal.App.6th 777",
+        "status": "Potential Hallucination",
+        "confidence": 92,
+        "evidence": "CourtListener:citation_field failed; CourtListener:citation_query failed; CourtListener:citation_no_periods failed; CourtListener:party_name_field failed; CourtListener:party_name_quoted failed; Court"
+      },
+      {
+        "raw": "789 Cal.App.7th 333",
+        "status": "Potential Hallucination",
+        "confidence": 92,
+        "evidence": "CourtListener:citation_field failed; CourtListener:citation_query failed; CourtListener:citation_no_periods failed; CourtListener:party_name_field failed; CourtListener:party_name_quoted failed; Court"
+      },
+      {
+        "raw": "222 Cal.App.8th 444",
+        "status": "Potential Hallucination",
+        "confidence": 92,
+        "evidence": "CourtListener:citation_field failed; CourtListener:citation_query failed; CourtListener:citation_no_periods failed; CourtListener:party_name_field failed; CourtListener:party_name_quoted failed; Court"
+      }
+    ]
+  },
+  {
+    "file": "FAKE-Wang-Test-Brief.docx",
+    "type": "fake",
+    "time": 0.02,
+    "total": 10,
+    "verified": 0,
+    "hallucination": 10,
+    "needs_review": 0,
+    "skipped": 0,
+    "citations": [
+      {
+        "raw": "123 Cal. App. 5th 456",
+        "status": "Potential Hallucination",
+        "confidence": 92,
+        "evidence": "CourtListener:citation_field failed; CourtListener:citation_query failed; CourtListener:citation_no_periods failed; CourtListener:party_name_field failed; CourtListener:party_name_quoted failed; Court"
+      },
+      {
+        "raw": "999 Cal. 888",
+        "status": "Potential Hallucination",
+        "confidence": 90,
+        "evidence": "CourtListener:citation_field failed; CourtListener:citation_query failed; CourtListener:citation_no_periods failed; CourtListener:party_name failed; Google Scholar:scholar_citation failed (HTTPSConnec"
+      },
+      {
+        "raw": "88 Cal. 5th 1111",
+        "status": "Potential Hallucination",
+        "confidence": 92,
+        "evidence": "CourtListener:citation_field failed; CourtListener:citation_query failed; CourtListener:citation_no_periods failed; CourtListener:party_name_field failed; CourtListener:party_name_quoted failed; Court"
+      },
+      {
+        "raw": "303 Cal. App. 5th 2222",
+        "status": "Potential Hallucination",
+        "confidence": 92,
+        "evidence": "CourtListener:citation_field failed; CourtListener:citation_query failed; CourtListener:citation_no_periods failed; CourtListener:party_name_field failed; CourtListener:party_name_quoted failed; Court"
+      },
+      {
+        "raw": "999 U.S. 123",
+        "status": "Potential Hallucination",
+        "confidence": 92,
+        "evidence": "CourtListener:citation_field failed; CourtListener:citation_query failed; CourtListener:citation_no_periods failed; CourtListener:party_name_field failed; CourtListener:party_name_quoted failed; Court"
+      },
+      {
+        "raw": "101 Cal. 4th 555",
+        "status": "Potential Hallucination",
+        "confidence": 92,
+        "evidence": "CourtListener:citation_field failed; CourtListener:citation_query failed; CourtListener:citation_no_periods failed; CourtListener:party_name_field failed; CourtListener:party_name_quoted failed; Court"
+      },
+      {
+        "raw": "456 F.3d 789",
+        "status": "Potential Hallucination",
+        "confidence": 92,
+        "evidence": "CourtListener:citation_field failed; CourtListener:citation_query failed; CourtListener:citation_no_periods failed; CourtListener:party_name_field failed; CourtListener:party_name_quoted failed; Court"
+      },
+      {
+        "raw": "77 Cal.App.6th 777",
+        "status": "Potential Hallucination",
+        "confidence": 92,
+        "evidence": "CourtListener:citation_field failed; CourtListener:citation_query failed; CourtListener:citation_no_periods failed; CourtListener:party_name_field failed; CourtListener:party_name_quoted failed; Court"
+      },
+      {
+        "raw": "789 Cal.App.7th 333",
+        "status": "Potential Hallucination",
+        "confidence": 92,
+        "evidence": "CourtListener:citation_field failed; CourtListener:citation_query failed; CourtListener:citation_no_periods failed; CourtListener:party_name_field failed; CourtListener:party_name_quoted failed; Court"
+      },
+      {
+        "raw": "222 Cal.App.8th 444",
+        "status": "Potential Hallucination",
+        "confidence": 92,
+        "evidence": "CourtListener:citation_field failed; CourtListener:citation_query failed; CourtListener:citation_no_periods failed; CourtListener:party_name_field failed; CourtListener:party_name_quoted failed; Court"
+      }
+    ]
+  },
+  {
+    "file": "FAKE-Xu-Test-Brief.docx",
+    "type": "fake",
+    "time": 0.01,
+    "total": 10,
+    "verified": 0,
+    "hallucination": 10,
+    "needs_review": 0,
+    "skipped": 0,
+    "citations": [
+      {
+        "raw": "123 Cal. App. 5th 456",
+        "status": "Potential Hallucination",
+        "confidence": 92,
+        "evidence": "CourtListener:citation_field failed; CourtListener:citation_query failed; CourtListener:citation_no_periods failed; CourtListener:party_name_field failed; CourtListener:party_name_quoted failed; Court"
+      },
+      {
+        "raw": "999 Cal. 888",
+        "status": "Potential Hallucination",
+        "confidence": 90,
+        "evidence": "CourtListener:citation_field failed; CourtListener:citation_query failed; CourtListener:citation_no_periods failed; CourtListener:party_name failed; Google Scholar:scholar_citation failed (HTTPSConnec"
+      },
+      {
+        "raw": "88 Cal. 5th 1111",
+        "status": "Potential Hallucination",
+        "confidence": 92,
+        "evidence": "CourtListener:citation_field failed; CourtListener:citation_query failed; CourtListener:citation_no_periods failed; CourtListener:party_name_field failed; CourtListener:party_name_quoted failed; Court"
+      },
+      {
+        "raw": "303 Cal. App. 5th 2222",
+        "status": "Potential Hallucination",
+        "confidence": 92,
+        "evidence": "CourtListener:citation_field failed; CourtListener:citation_query failed; CourtListener:citation_no_periods failed; CourtListener:party_name_field failed; CourtListener:party_name_quoted failed; Court"
+      },
+      {
+        "raw": "999 U.S. 123",
+        "status": "Potential Hallucination",
+        "confidence": 92,
+        "evidence": "CourtListener:citation_field failed; CourtListener:citation_query failed; CourtListener:citation_no_periods failed; CourtListener:party_name_field failed; CourtListener:party_name_quoted failed; Court"
+      },
+      {
+        "raw": "101 Cal. 4th 555",
+        "status": "Potential Hallucination",
+        "confidence": 92,
+        "evidence": "CourtListener:citation_field failed; CourtListener:citation_query failed; CourtListener:citation_no_periods failed; CourtListener:party_name_field failed; CourtListener:party_name_quoted failed; Court"
+      },
+      {
+        "raw": "456 F.3d 789",
+        "status": "Potential Hallucination",
+        "confidence": 92,
+        "evidence": "CourtListener:citation_field failed; CourtListener:citation_query failed; CourtListener:citation_no_periods failed; CourtListener:party_name_field failed; CourtListener:party_name_quoted failed; Court"
+      },
+      {
+        "raw": "77 Cal.App.6th 777",
+        "status": "Potential Hallucination",
+        "confidence": 92,
+        "evidence": "CourtListener:citation_field failed; CourtListener:citation_query failed; CourtListener:citation_no_periods failed; CourtListener:party_name_field failed; CourtListener:party_name_quoted failed; Court"
+      },
+      {
+        "raw": "789 Cal.App.7th 333",
+        "status": "Potential Hallucination",
+        "confidence": 92,
+        "evidence": "CourtListener:citation_field failed; CourtListener:citation_query failed; CourtListener:citation_no_periods failed; CourtListener:party_name_field failed; CourtListener:party_name_quoted failed; Court"
+      },
+      {
+        "raw": "222 Cal.App.8th 444",
+        "status": "Potential Hallucination",
+        "confidence": 92,
+        "evidence": "CourtListener:citation_field failed; CourtListener:citation_query failed; CourtListener:citation_no_periods failed; CourtListener:party_name_field failed; CourtListener:party_name_quoted failed; Court"
+      }
+    ]
+  },
+  {
+    "file": "delaware_derivative_brief.docx",
+    "type": "real",
+    "time": 0.07,
+    "total": 4,
+    "verified": 3,
+    "hallucination": 0,
+    "needs_review": 1,
+    "skipped": 0,
+    "citations": [
+      {
+        "raw": "473 A.2d 805",
+        "status": "Verified (CourtListener)",
+        "confidence": 95,
+        "evidence": "CourtListener citation_field returned a matching result."
+      },
+      {
+        "raw": "73 A.3d 697",
+        "status": "Verified (CourtListener)",
+        "confidence": 95,
+        "evidence": "CourtListener citation_field returned a matching result."
+      },
+      {
+        "raw": "94 A.3d 956",
+        "status": "Verified (CourtListener)",
+        "confidence": 95,
+        "evidence": "CourtListener citation_field returned a matching result."
+      },
+      {
+        "raw": "2013 WL 5525877",
+        "status": "Needs Review",
+        "confidence": 0,
+        "evidence": "WL citation could not be verified: no matching case found via party name search on CourtListener, Google Scholar, or web search. Verify manually via Westlaw."
+      }
+    ]
+  },
+  {
+    "file": "hallucinated_brief.docx",
+    "type": "fake",
+    "time": 0.1,
+    "total": 4,
+    "verified": 0,
+    "hallucination": 4,
+    "needs_review": 0,
+    "skipped": 0,
+    "citations": [
+      {
+        "raw": "892 F.3d 1147",
+        "status": "Potential Hallucination",
+        "confidence": 92,
+        "evidence": "CourtListener:citation_field failed; CourtListener:citation_query failed; CourtListener:citation_no_periods failed; CourtListener:party_name_field failed; CourtListener:party_name_quoted failed; Court"
+      },
+      {
+        "raw": "567 U.S. 234",
+        "status": "Potential Hallucination",
+        "confidence": 92,
+        "evidence": "CourtListener:citation_field failed; CourtListener:citation_query failed; CourtListener:citation_no_periods failed; CourtListener:party_name_field failed; CourtListener:party_name_quoted failed; Court"
+      },
+      {
+        "raw": "445 F.3d 891",
+        "status": "Potential Hallucination",
+        "confidence": 92,
+        "evidence": "CourtListener:citation_field failed; CourtListener:citation_query failed; CourtListener:citation_no_periods failed; CourtListener:party_name_field failed; CourtListener:party_name_quoted failed; Court"
+      },
+      {
+        "raw": "789 F. Supp. 3d 456",
+        "status": "Potential Hallucination",
+        "confidence": 92,
+        "evidence": "CourtListener:citation_field failed; CourtListener:citation_query failed; CourtListener:citation_no_periods failed; CourtListener:party_name_field failed; CourtListener:party_name_quoted failed; Court"
+      }
+    ]
+  },
+  {
+    "file": "mixed_brief.docx",
+    "type": "mixed",
+    "time": 0.07,
+    "total": 4,
+    "verified": 2,
+    "hallucination": 2,
+    "needs_review": 0,
+    "skipped": 0,
+    "citations": [
+      {
+        "raw": "376 U.S. 254",
+        "status": "Verified (CourtListener)",
+        "confidence": 95,
+        "evidence": "CourtListener citation_field returned a matching result."
+      },
+      {
+        "raw": "834 F.3d 1289",
+        "status": "Potential Hallucination",
+        "confidence": 92,
+        "evidence": "CourtListener:citation_field failed; CourtListener:citation_query failed; CourtListener:citation_no_periods failed; CourtListener:party_name_field failed; CourtListener:party_name_quoted failed; Court"
+      },
+      {
+        "raw": "384 U.S. 436",
+        "status": "Verified (CourtListener)",
+        "confidence": 95,
+        "evidence": "CourtListener citation_field returned a matching result."
+      },
+      {
+        "raw": "512 F. Supp. 3d 789",
+        "status": "Potential Hallucination",
+        "confidence": 92,
+        "evidence": "CourtListener:citation_field failed; CourtListener:citation_query failed; CourtListener:citation_no_periods failed; CourtListener:party_name_field failed; CourtListener:party_name_quoted failed; Court"
+      }
+    ]
+  },
+  {
+    "file": "real_brief.docx",
+    "type": "real",
+    "time": 0.02,
+    "total": 5,
+    "verified": 5,
+    "hallucination": 0,
+    "needs_review": 0,
+    "skipped": 0,
+    "citations": [
+      {
+        "raw": "347 U.S. 483",
+        "status": "Verified (CourtListener)",
+        "confidence": 95,
+        "evidence": "CourtListener citation_field returned a matching result."
+      },
+      {
+        "raw": "372 U.S. 335",
+        "status": "Verified (CourtListener)",
+        "confidence": 95,
+        "evidence": "CourtListener citation_field returned a matching result."
+      },
+      {
+        "raw": "466 U.S. 668",
+        "status": "Verified (CourtListener)",
+        "confidence": 95,
+        "evidence": "CourtListener citation_field returned a matching result."
+      },
+      {
+        "raw": "367 U.S. 643",
+        "status": "Verified (CourtListener)",
+        "confidence": 95,
+        "evidence": "CourtListener citation_field returned a matching result."
+      },
+      {
+        "raw": "232 U.S. 383",
+        "status": "Verified (CourtListener)",
+        "confidence": 95,
+        "evidence": "CourtListener citation_field returned a matching result."
+      }
+    ]
+  }
+]
