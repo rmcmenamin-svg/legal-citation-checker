@@ -40,6 +40,8 @@ from .verifier import (
     COURTLISTENER_SEARCH_BASE,
     CitationVerifier,
     _WESTLAW_PATTERN,
+    _extract_name_tokens,
+    _name_token_overlap,
     case_name_from_metadata,
     reporter_triplet,
     strip_pincite,

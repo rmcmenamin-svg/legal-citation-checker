@@ -391,7 +391,7 @@ class CitationVerifier:
                 if _citations_equivalent(cite_str, base, target_triplet):
                     return (90, result_url, f"citation {base} found in result")
 
-            # Check 2: Case name + year match
+            # Check 2: Case name match (token-based fuzzy + substring fallback)
             result_name = _get_case_name(result)
             result_date = str(result.get("dateFiled") or result.get("date_filed") or "")
 
@@ -399,29 +399,59 @@ class CitationVerifier:
             plaintiff = p.plaintiff or str(citation.metadata.get("plaintiff") or "").strip() or None
             defendant = p.defendant or str(citation.metadata.get("defendant") or "").strip() or None
             year = p.year or str(citation.metadata.get("year") or "").strip() or None
+            year_ok = (not year) or (year in result_date)
 
-            if result_name and plaintiff and defendant:
-                name_lower = result_name.lower()
-                has_plaintiff = plaintiff.lower() in name_lower
-                has_defendant = defendant.lower() in name_lower
-                year_ok = (not year) or (year in result_date)
+            # Build the cited case name for token comparison (used in Checks 2 & 3)
+            cited_name = p.case_name or case_name_from_metadata(citation.metadata)
 
-                if has_plaintiff and has_defendant and year_ok:
-                    # Double-check with triplet if available
-                    if target_triplet:
-                        for cite_str in result_cites:
-                            if triplet_match(cite_str, target_triplet):
-                                return (85, result_url, f"parties + triplet match")
-                    # Parties + year is strong enough
-                    return (85, result_url, f"parties ({plaintiff}, {defendant}) + year match")
+            if result_name:
+
+                # Method A: Token-overlap matching (from smart-rename-legal)
+                if cited_name:
+                    overlap_ratio, overlap_count = _name_token_overlap(cited_name, result_name)
+                    # Strong match: >= 50% overlap AND >= 2 tokens (or >= 80% with any tokens)
+                    strong_token_match = (
+                        (overlap_ratio >= 0.5 and overlap_count >= 2) or
+                        overlap_ratio >= 0.8
+                    )
+                    if strong_token_match and year_ok:
+                        if target_triplet:
+                            for cite_str in result_cites:
+                                if triplet_match(cite_str, target_triplet):
+                                    return (90, result_url, f"token match ({overlap_count} tokens, {overlap_ratio:.0%}) + triplet")
+                        return (85, result_url, f"token match ({overlap_count} tokens, {overlap_ratio:.0%}) + year")
+
+                # Method B: Substring fallback for cases where only party names are available
+                if plaintiff and defendant:
+                    name_lower = result_name.lower()
+                    has_plaintiff = plaintiff.lower() in name_lower
+                    has_defendant = defendant.lower() in name_lower
+
+                    if has_plaintiff and has_defendant and year_ok:
+                        if target_triplet:
+                            for cite_str in result_cites:
+                                if triplet_match(cite_str, target_triplet):
+                                    return (85, result_url, f"parties + triplet match")
+                        return (85, result_url, f"parties ({plaintiff}, {defendant}) + year match")
+
+                    # Method C: Single party + token overlap (weaker but still useful)
+                    if (has_plaintiff or has_defendant) and year_ok and cited_name:
+                        overlap_ratio, overlap_count = _name_token_overlap(cited_name, result_name)
+                        if overlap_ratio >= 0.4 and overlap_count >= 1:
+                            matched_party = plaintiff if has_plaintiff else defendant
+                            return (75, result_url, f"party '{matched_party}' + token overlap ({overlap_ratio:.0%})")
 
             # Check 3: Reporter triplet in result citations
             if target_triplet:
                 for cite_str in result_cites:
                     if triplet_match(cite_str, target_triplet):
-                        # Triplet matches but we should also check name isn't wildly different
-                        if result_name and p.plaintiff:
-                            if p.plaintiff.lower() in result_name.lower():
+                        # Triplet matches — verify name isn't wildly different
+                        if result_name and cited_name:
+                            overlap_ratio, _ = _name_token_overlap(cited_name, result_name)
+                            if overlap_ratio >= 0.3:
+                                return (85, result_url, f"triplet + name overlap ({overlap_ratio:.0%})")
+                        elif result_name and plaintiff:
+                            if plaintiff.lower() in result_name.lower():
                                 return (85, result_url, "triplet + plaintiff match")
                         # Triplet alone is decent evidence
                         return (80, result_url, "reporter triplet match in results")
@@ -718,16 +748,61 @@ def _build_broad_query(citation: ExtractedCitation) -> str:
 
 def _most_distinctive_word(case_name: str) -> Optional[str]:
     """Pick the most distinctive word from a case name for web searching."""
-    _COMMON_WORDS = frozenset({
-        "v", "vs", "the", "of", "in", "re", "ex", "rel", "et", "al",
-        "state", "states", "united", "people", "city", "county",
-        "board", "department", "commission", "inc", "corp", "llc", "ltd",
-    })
     words = re.split(r"[\s\.\,]+", case_name)
-    distinctive = [w for w in words if len(w) > 3 and w.lower() not in _COMMON_WORDS]
+    distinctive = [w for w in words if len(w) > 3 and w.lower() not in _NAME_NOISE_WORDS]
     if not distinctive:
         return None
     return max(distinctive, key=len)
+
+
+# Noise words filtered from case names during token-based matching.
+# Ported from smart-rename-legal's matching logic.
+_NAME_NOISE_WORDS = frozenset({
+    "v", "vs", "the", "of", "in", "re", "ex", "rel", "et", "al", "a", "an",
+    "for", "on", "by", "to", "and", "or", "no", "nos",
+    # Common entity suffixes
+    "inc", "corp", "co", "llc", "llp", "ltd", "lp", "pa", "pc", "pllc",
+    "assn", "ass'n", "assoc", "association",
+    # Government / generic parties
+    "state", "states", "united", "people", "city", "county", "town",
+    "board", "department", "dept", "commission", "authority", "agency",
+    "government", "gov", "govt",
+    # Procedural
+    "matter", "estate", "interest", "application", "petition",
+})
+
+
+def _extract_name_tokens(name: str) -> set:
+    """Extract meaningful tokens from a case name, filtering noise words.
+
+    Ported from smart-rename-legal's token-overlap matching approach.
+    Returns a set of lowercased tokens suitable for overlap comparison.
+    """
+    # Split on whitespace, punctuation, and common separators
+    raw_tokens = re.split(r"[\s\.\,\;\:\(\)\[\]\-/]+", name)
+    tokens = set()
+    for t in raw_tokens:
+        # Strip possessives and trailing punctuation
+        t = re.sub(r"['']s$", "", t).strip("'\"")
+        low = t.lower()
+        if len(low) >= 2 and low not in _NAME_NOISE_WORDS:
+            tokens.add(low)
+    return tokens
+
+
+def _name_token_overlap(name_a: str, name_b: str) -> Tuple[float, int]:
+    """Compute token overlap ratio between two case names.
+
+    Returns (overlap_ratio, num_matching_tokens).
+    overlap_ratio is relative to the smaller token set.
+    """
+    tokens_a = _extract_name_tokens(name_a)
+    tokens_b = _extract_name_tokens(name_b)
+    if not tokens_a or not tokens_b:
+        return (0.0, 0)
+    common = tokens_a & tokens_b
+    smaller = min(len(tokens_a), len(tokens_b))
+    return (len(common) / smaller, len(common))
 
 
 def _count_results(data: Dict[str, Any]) -> int:

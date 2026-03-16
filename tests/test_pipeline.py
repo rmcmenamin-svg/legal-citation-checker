@@ -15,6 +15,8 @@ from legal_citation_checker.pipeline import (
     VerificationDecision,
     _SKIP_CITATION_TYPES,
     _WESTLAW_PATTERN,
+    _extract_name_tokens,
+    _name_token_overlap,
 )
 
 
@@ -392,6 +394,84 @@ class TestAuditReport:
 
 # ---------------------------------------------------------------------------
 # Unit tests: Broad query building
+# ---------------------------------------------------------------------------
+# Unit tests: Fuzzy name matching
+# ---------------------------------------------------------------------------
+
+class TestFuzzyNameMatching:
+    def test_extract_name_tokens_filters_noise(self) -> None:
+        tokens = _extract_name_tokens("Smith v. Jones, Inc.")
+        assert "smith" in tokens
+        assert "jones" in tokens
+        assert "v" not in tokens
+        assert "inc" not in tokens
+
+    def test_extract_name_tokens_handles_possessives(self) -> None:
+        tokens = _extract_name_tokens("O'Brien's Estate v. City of Portland")
+        assert "o'brien" in tokens or "obrien" in tokens
+        assert "portland" in tokens
+        assert "city" not in tokens
+        assert "of" not in tokens
+
+    def test_token_overlap_exact_match(self) -> None:
+        ratio, count = _name_token_overlap("Smith v. Jones", "Smith v. Jones")
+        assert ratio == 1.0
+        assert count >= 2
+
+    def test_token_overlap_abbreviation_match(self) -> None:
+        """Abbreviated vs full entity name should partially match."""
+        ratio, count = _name_token_overlap(
+            "Cornerstone Therapeutics v. Derivative Action Litig.",
+            "Cornerstone Therapeutics Inc. v. Professional Derivative Action Litigation",
+        )
+        assert ratio >= 0.5
+        assert count >= 2
+
+    def test_token_overlap_no_match(self) -> None:
+        ratio, count = _name_token_overlap("Smith v. Jones", "Baker v. Cook")
+        assert ratio == 0.0
+        assert count == 0
+
+    def test_token_overlap_partial_match(self) -> None:
+        """Party name variations that share some tokens."""
+        ratio, count = _name_token_overlap(
+            "Carpenter v. United States",
+            "Timothy Carpenter v. United States of America",
+        )
+        assert count >= 1  # "carpenter" should match
+        assert ratio > 0
+
+    def test_verified_with_fuzzy_match(self) -> None:
+        """Fuzzy token matching should verify a case with abbreviated names."""
+        checker = make_checker()
+        citation = make_citation(
+            raw="73 A.3d 697",
+            normalized="73 A.3d 697",
+            metadata={
+                "year": "2013",
+                "plaintiff": "Cornerstone Therapeutics",
+                "defendant": "Derivative Action Litig.",
+            },
+        )
+
+        def mock_http_get(url: str, **kwargs: Any) -> Tuple[Dict[str, Any], str, None]:
+            return {
+                "count": 1,
+                "results": [{
+                    "caseName": "Cornerstone Therapeutics Inc. v. Prof'l Derivative Action Litigation",
+                    "case_name": "Cornerstone Therapeutics Inc. v. Prof'l Derivative Action Litigation",
+                    "dateFiled": "2013-07-08",
+                    "absolute_url": "/opinion/789/cornerstone/",
+                    "cluster_id": 789,
+                    "citation": ["73 A.3d 697"],
+                }],
+            }, "http://example.com", None
+
+        checker._verifier._http_get_json = mock_http_get  # type: ignore[assignment]
+        decision = checker._verify_citation(citation)
+        assert decision.status.startswith("Verified"), f"Expected Verified, got: {decision.status}"
+
+
 # ---------------------------------------------------------------------------
 
 class TestQueryBuilding:
