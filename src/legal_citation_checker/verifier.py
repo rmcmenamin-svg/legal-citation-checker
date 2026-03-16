@@ -18,6 +18,9 @@ _PINCITE_PATTERN = re.compile(r"^(.+?\d+)\s*,\s*\d+(?:\s*[-–]\s*\d+)?$")
 # Regex to detect Westlaw citations: "2025 WL 2192378"
 _WESTLAW_PATTERN = re.compile(r"^\d{4}\s+WL\s+\d+$", re.IGNORECASE)
 
+# Regex to detect LexisNexis citations: "2024 U.S. App. LEXIS 12345"
+_LEXIS_PATTERN = re.compile(r"^\d{4}\s+\S.*?\s*LEXIS\s+\d+$", re.IGNORECASE)
+
 # CourtListener search API (v4 — the /search/ endpoint is free, no auth).
 COURTLISTENER_SEARCH_BASE = "https://www.courtlistener.com/api/rest/v4/search/"
 
@@ -46,35 +49,76 @@ class CitationVerifier:
         attempts: List[SearchAttempt] = []
         p = citation.parsed
 
-        # Westlaw citations can't be verified against free databases.
-        if _WESTLAW_PATTERN.match(citation.normalized_citation.strip()):
-            return VerificationDecision(
-                status="Needs Review",
-                confidence=0,
-                evidence="Westlaw (WL) citations cannot be verified against free legal databases. "
-                         "Manual verification via Westlaw required.",
-                search_attempts=attempts,
-            )
+        # Detect vendor-specific citations (WL/Lexis) — these can't be
+        # verified by citation number, but we CAN verify the underlying case
+        # exists by searching for party names on CourtListener / Google Scholar.
+        norm = citation.normalized_citation.strip()
+        is_vendor_cite = bool(
+            _WESTLAW_PATTERN.match(norm) or _LEXIS_PATTERN.match(norm)
+        )
 
-        # ── Tier 1: Citation number lookup (foolproof if positive) ──────
-        decision = self._tier1_citation_lookup(citation, attempts)
-        if decision is not None:
-            return decision
+        if not is_vendor_cite:
+            # ── Tier 1: Citation number lookup (foolproof if positive) ──
+            decision = self._tier1_citation_lookup(citation, attempts)
+            if decision is not None:
+                return decision
 
         # ── Tier 2: Party name search (fuzzy match on results) ──────────
         decision = self._tier2_party_name_search(citation, attempts)
         if decision is not None:
+            if is_vendor_cite:
+                # Downgrade confidence slightly — we verified the case exists
+                # but can't confirm the exact WL/Lexis number.
+                decision.status = "Verified (case exists)"
+                decision.confidence = min(decision.confidence, 80)
+                decision.evidence = (
+                    f"Case verified via party name search. "
+                    f"The exact {'WL' if _WESTLAW_PATTERN.match(norm) else 'LEXIS'} "
+                    f"citation number could not be independently confirmed. "
+                    f"Original: {decision.evidence}"
+                )
             return decision
 
         # ── Tier 3: Google Scholar ──────────────────────────────────────
         decision = self._tier3_google_scholar(citation, attempts)
         if decision is not None:
+            if is_vendor_cite:
+                decision.status = "Verified (case exists)"
+                decision.confidence = min(decision.confidence, 75)
+                decision.evidence = (
+                    f"Case verified via Google Scholar. "
+                    f"The exact {'WL' if _WESTLAW_PATTERN.match(norm) else 'LEXIS'} "
+                    f"citation number could not be independently confirmed. "
+                    f"Original: {decision.evidence}"
+                )
             return decision
 
         # ── Tier 4: Web docket search ───────────────────────────────────
         decision = self._tier4_web_docket_search(citation, attempts)
         if decision is not None:
+            if is_vendor_cite:
+                decision.status = "Verified (case exists)"
+                decision.confidence = min(decision.confidence, 70)
+                decision.evidence = (
+                    f"Case verified via web search. "
+                    f"The exact {'WL' if _WESTLAW_PATTERN.match(norm) else 'LEXIS'} "
+                    f"citation number could not be independently confirmed. "
+                    f"Original: {decision.evidence}"
+                )
             return decision
+
+        # ── Final: vendor citation or hallucination ─────────────────────
+        if is_vendor_cite:
+            # Vendor citations that couldn't be verified via party names
+            vendor = "WL" if _WESTLAW_PATTERN.match(norm) else "LEXIS"
+            return VerificationDecision(
+                status="Needs Review",
+                confidence=0,
+                evidence=f"{vendor} citation could not be verified: no matching case "
+                         f"found via party name search on CourtListener, Google Scholar, "
+                         f"or web search. Verify manually via {'Westlaw' if vendor == 'WL' else 'LexisNexis'}.",
+                search_attempts=attempts,
+            )
 
         # ── Final: Network error check vs. hallucination ────────────────
         non_skipped = [a for a in attempts if a.details != "skipped"]
@@ -227,11 +271,12 @@ class CitationVerifier:
             ))
             return None
 
-        # Build date filters from year
+        # Build date filters from year (fall back to metadata)
+        year_str = p.year or str(citation.metadata.get("year") or "").strip() or None
         date_params: Dict[str, str] = {}
-        if p.year:
+        if year_str:
             try:
-                y = int(p.year)
+                y = int(year_str)
                 date_params["filed_after"] = f"{y - 1}-01-01"
                 date_params["filed_before"] = f"{y + 1}-12-31"
             except ValueError:
@@ -284,7 +329,10 @@ class CitationVerifier:
             )
 
         # Strategy 3: individual party names (plaintiff OR defendant)
-        for party_role, party_name in [("plaintiff", p.plaintiff), ("defendant", p.defendant)]:
+        # Fall back to metadata for party names if parsed fields are empty
+        plaintiff = p.plaintiff or str(citation.metadata.get("plaintiff") or "").strip() or None
+        defendant = p.defendant or str(citation.metadata.get("defendant") or "").strip() or None
+        for party_role, party_name in [("plaintiff", plaintiff), ("defendant", defendant)]:
             if not party_name or len(party_name) < 3:
                 continue
             params = {"q": f'"{party_name}"', "type": "o"}
@@ -347,11 +395,16 @@ class CitationVerifier:
             result_name = _get_case_name(result)
             result_date = str(result.get("dateFiled") or result.get("date_filed") or "")
 
-            if result_name and p.plaintiff and p.defendant:
+            # Fall back to metadata for party names if parsed fields are empty
+            plaintiff = p.plaintiff or str(citation.metadata.get("plaintiff") or "").strip() or None
+            defendant = p.defendant or str(citation.metadata.get("defendant") or "").strip() or None
+            year = p.year or str(citation.metadata.get("year") or "").strip() or None
+
+            if result_name and plaintiff and defendant:
                 name_lower = result_name.lower()
-                has_plaintiff = p.plaintiff.lower() in name_lower
-                has_defendant = p.defendant.lower() in name_lower
-                year_ok = (not p.year) or (p.year in result_date)
+                has_plaintiff = plaintiff.lower() in name_lower
+                has_defendant = defendant.lower() in name_lower
+                year_ok = (not year) or (year in result_date)
 
                 if has_plaintiff and has_defendant and year_ok:
                     # Double-check with triplet if available
@@ -360,7 +413,7 @@ class CitationVerifier:
                             if triplet_match(cite_str, target_triplet):
                                 return (85, result_url, f"parties + triplet match")
                     # Parties + year is strong enough
-                    return (85, result_url, f"parties ({p.plaintiff}, {p.defendant}) + year match")
+                    return (85, result_url, f"parties ({plaintiff}, {defendant}) + year match")
 
             # Check 3: Reporter triplet in result citations
             if target_triplet:

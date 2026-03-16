@@ -259,12 +259,71 @@ class TestVerificationDecisions:
         assert decision.status.startswith("Verified")
         assert decision.confidence >= 85
 
-    def test_westlaw_citation_needs_review(self) -> None:
+    def test_westlaw_citation_no_party_needs_review(self) -> None:
+        """WL citation with no party names falls back to Needs Review."""
         checker = make_checker()
-        citation = make_citation(raw="2025 WL 2192378", normalized="2025 WL 2192378")
+        citation = make_citation(
+            raw="2025 WL 2192378",
+            normalized="2025 WL 2192378",
+            metadata={"year": "2025"},
+        )
         decision = checker._verify_citation(citation)
         assert decision.status == "Needs Review"
-        assert "Westlaw" in decision.evidence
+        assert "WL" in decision.evidence
+
+    def test_westlaw_citation_with_parties_tries_verification(self) -> None:
+        """WL citation with party names attempts party-name verification."""
+        checker = make_checker()
+        citation = make_citation(
+            raw="2024 WL 2208099",
+            normalized="2024 WL 2208099",
+            metadata={"year": "2024", "plaintiff": "Franklyn", "defendant": "Daubert"},
+        )
+
+        # Mock CourtListener to return a matching case
+        def mock_http_get(url: str, **kwargs: Any) -> Tuple[Dict[str, Any], str, None]:
+            return {
+                "count": 1,
+                "results": [{
+                    "caseName": "Franklyn v. Daubert",
+                    "case_name": "Franklyn v. Daubert",
+                    "dateFiled": "2024-05-15",
+                    "absolute_url": "/opinion/123/franklyn-v-daubert/",
+                    "cluster_id": 123,
+                }],
+            }, "http://example.com", None
+
+        checker._verifier._http_get_json = mock_http_get  # type: ignore[assignment]
+        decision = checker._verify_citation(citation)
+        assert decision.status == "Verified (case exists)"
+        assert decision.confidence > 0
+        assert "WL" in decision.evidence
+
+    def test_lexis_citation_with_parties_tries_verification(self) -> None:
+        """LEXIS citation with party names attempts party-name verification."""
+        checker = make_checker()
+        citation = make_citation(
+            raw="2024 U.S. App. LEXIS 12345",
+            normalized="2024 U.S. App. LEXIS 12345",
+            metadata={"year": "2024", "plaintiff": "Smith", "defendant": "Jones"},
+        )
+
+        def mock_http_get(url: str, **kwargs: Any) -> Tuple[Dict[str, Any], str, None]:
+            return {
+                "count": 1,
+                "results": [{
+                    "caseName": "Smith v. Jones",
+                    "case_name": "Smith v. Jones",
+                    "dateFiled": "2024-03-01",
+                    "absolute_url": "/opinion/456/smith-v-jones/",
+                    "cluster_id": 456,
+                }],
+            }, "http://example.com", None
+
+        checker._verifier._http_get_json = mock_http_get  # type: ignore[assignment]
+        decision = checker._verify_citation(citation)
+        assert decision.status == "Verified (case exists)"
+        assert "LEXIS" in decision.evidence
 
 
 # ---------------------------------------------------------------------------
