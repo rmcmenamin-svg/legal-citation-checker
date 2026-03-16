@@ -1,0 +1,83 @@
+DEPOSITION OF ROBERT SMITH
+June 20, 2024
+
+Page 42
+  1 Q. Mr. Smith, what is your role at Keystone Pharma Group?
+  2 A. I am the Chief Technology Officer. I have held that
+  3 position since March 2022.
+  4 Q. And in that capacity, you are responsible for the
+  5 company's technology infrastructure?
+  6 A. Yes, that's correct. I oversee all technology
+  7 operations, including server infrastructure, software
+  8 development, and cybersecurity.
+  9 Q. Mr. Smith, are you familiar with the Master Services
+ 10 Agreement between Keystone and Apex Software Solutions?
+ 11 A. Yes, I am. I was involved in negotiating the technical
+ 12 specifications of that agreement.
+ 13 Q. And you're aware that the MSA included a 99.99%
+ 14 uptime guarantee?
+ 15 A. Yes.
+ 16 Q. Did Keystone meet that uptime guarantee?
+ 17 A. No. We experienced several significant outages between
+ 18 March and August 2024.
+ 19 Q. What caused those outages?
+ 20 A. The primary cause was our migration to a new hosting
+ 21 platform in February 2024.
+ 22 Q. Whose decision was it to migrate to the new platform?
+ 23 A. It was a joint decision between myself and the CFO,
+ 24 Michael Torres. We were looking to reduce operating
+ 25 costs.
+
+Page 43
+  1 Q. Did you inform Apex Software about the migration
+  2 before it occurred?
+  3 A. No, we did not.
+  4 Q. Why not?
+  5 A. Honestly, we didn't think it would cause any
+  6 significant issues. The new platform had good reviews
+  7 and we believed the transition would be seamless.
+  8 Q. But it wasn't seamless, was it?
+  9 A. No, it was not. We started experiencing stability
+ 10 issues almost immediately after the migration.
+ 11 Q. When you say 'almost immediately,' what do you mean?
+ 12 A. Within the first two weeks. The first major outage
+ 13 occurred on March 12th.
+ 14 Q. And you still didn't inform Apex at that point?
+ 15 A. We reported the outage itself but did not disclose
+ 16 that it was related to the infrastructure change.
+ 17 Q. You concealed the cause from your client?
+ 18 A. I wouldn't characterize it as concealment. We were
+ 19 still diagnosing the root cause at that time.
+ 20 Q. But by June, you knew the cause, correct?
+ 21 A. Yes, by June we had confirmed that the migration was
+ 22 the primary factor.
+ 23 Q. And that's when you sent the email to Sarah Chen?
+ 24 A. Yes, the June 15th email. I wanted to be transparent
+ 25 about what had happened.
+
+Page 45
+  1 Q. Mr. Smith, approximately how many hours of total
+  2 downtime did Keystone's platform experience between
+  3 March and August 2024?
+  4 A. Our internal logs show approximately 340 hours of
+  5 cumulative downtime across all incidents.
+  6 Q. 340 hours. That's over fourteen days of downtime in
+  7 a six-month period?
+  8 A. Yes, that's correct.
+  9 Q. And the SLA permitted how much downtime per month?
+ 10 A. The SLA guaranteed 99.99% uptime, which translates
+ 11 to approximately 4.3 minutes of permitted downtime per
+ 12 month.
+ 13 Q. So 340 hours versus roughly 26 minutes of permitted
+ 14 downtime over six months?
+ 15 A. When you put it that way, yes, that's a significant
+ 16 deviation from the SLA.
+ 17 Q. Did Keystone issue any service credits to Apex as
+ 18 required by Section 3.2 of the MSA?
+ 19 A. I believe we issued some credits, but I'm not sure
+ 20 of the exact amount.
+ 21 Q. Would it surprise you to learn that no credits were
+ 22 ever issued?
+ 23 A. I — I would need to check our records on that.
+ 24 Q. Let's move on to the financial impact.
+ 25 A. Okay.

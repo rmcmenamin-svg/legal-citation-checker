@@ -46,6 +46,16 @@ def main(args: Optional[list] = None) -> int:
         help="Disable verification result caching",
     )
     parser.add_argument(
+        "--corpus-dir",
+        type=Path,
+        help="Directory of source documents for closed-corpus record verification",
+    )
+    parser.add_argument(
+        "--no-caselaw",
+        action="store_true",
+        help="Skip case-law verification (only check record citations against corpus)",
+    )
+    parser.add_argument(
         "--version",
         action="version",
         version="legal-citation-checker 0.1.0",
@@ -69,16 +79,65 @@ def main(args: Optional[list] = None) -> int:
             request_timeout=parsed_args.timeout,
             disable_cache=parsed_args.no_cache,
         )
+
+        # Closed-corpus mode
+        if parsed_args.corpus_dir:
+            if not parsed_args.corpus_dir.is_dir():
+                print(f"Error: Corpus directory not found: {parsed_args.corpus_dir}", file=sys.stderr)
+                return 1
+
+            result = checker.process_with_corpus(
+                brief_path=parsed_args.input_file,
+                corpus_dir=parsed_args.corpus_dir,
+                include_caselaw=not parsed_args.no_caselaw,
+            )
+
+            # Print record citation results
+            summary = result["record_summary"]
+            print(f"\n{'=' * 70}")
+            print(f"  RECORD CITATION CHECK — {summary['total']} citations found")
+            print(f"{'=' * 70}")
+            print(f"  Corpus: {len(result['corpus_documents'])} documents")
+            for label in result["corpus_documents"]:
+                print(f"    - {label}")
+            print()
+
+            for citation, vresult in result["record_results"]:
+                status_icon = {
+                    "Verified": "\u2705",
+                    "Document Not Found": "\U0001f534",
+                    "Location Mismatch": "\u26a0\ufe0f ",
+                    "Quote Mismatch": "\U0001f7e1",
+                    "Needs Review": "\u2753",
+                }.get(vresult.status, "?")
+                print(f"  {status_icon} [{vresult.confidence:3d}%] {citation.raw_text}")
+                print(f"         {vresult.evidence[:100]}")
+
+            print(f"\n  Summary: {summary['verified']} verified, "
+                  f"{summary['document_not_found']} not found, "
+                  f"{summary['location_mismatch']} location mismatch, "
+                  f"{summary['quote_mismatch']} quote mismatch")
+
+            # Also print case-law report if included
+            if result.get("caselaw_report"):
+                print(f"\n{'=' * 70}")
+                print("  CASE-LAW CITATION CHECK")
+                print(f"{'=' * 70}")
+                print(result["caselaw_report"].to_string(format="markdown"))
+
+            return 0
+
+        # Standard case-law mode
         report = checker.process_document(parsed_args.input_file)
-        
+
         if parsed_args.output:
             report.save(parsed_args.output, format=parsed_args.format)
             print(f"Report saved to: {parsed_args.output}")
         else:
             print(report.to_string(format=parsed_args.format))
-            
+
         return 0
-        
+
     except Exception as e:
         print(f"Error processing document: {e}", file=sys.stderr)
         if parsed_args.verbose:

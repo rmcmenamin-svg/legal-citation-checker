@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 
 @dataclass
@@ -149,3 +149,57 @@ class ExtractedCitation:
     metadata: Dict[str, Any]
     bluebook_normalized: bool
     parsed: ParsedCitation = field(default_factory=ParsedCitation)
+
+
+# ── Closed-corpus record citation models ───────────────────────────────
+
+
+@dataclass
+class RecordCitation:
+    """A citation to a record document (exhibit, deposition, complaint, etc.).
+
+    Unlike case-law citations (volume/reporter/page), record citations
+    reference documents within the case record using labels, page numbers,
+    line numbers, and paragraph numbers.
+    """
+
+    document_label: str         # "Exhibit A", "Smith Dep.", "Complaint"
+    document_type: str          # "exhibit", "deposition", "complaint", "declaration", "docket", "transcript", "order"
+    page_ref: Optional[str] = None          # "45" or "3-5"
+    line_ref: Optional[str] = None          # "12-15" (for depositions/transcripts)
+    paragraph_ref: Optional[str] = None     # "34" or "12-15"
+    party_prefix: Optional[str] = None      # "Pl.'s", "Def.'s"
+    witness_name: Optional[str] = None      # "Smith", "Jane Doe" (for depositions)
+    quoted_text: Optional[str] = None       # Quoted material near the citation
+    context: str = ""                       # Surrounding text in the brief
+    span: Tuple[int, int] = (0, 0)          # Character offsets in brief
+    raw_text: str = ""                      # Raw matched text
+    paragraph_index: Optional[int] = None   # Which paragraph of the brief
+
+
+@dataclass
+class CorpusDocument:
+    """A source document in the closed corpus (exhibit, deposition, etc.)."""
+
+    label: str                              # "Exhibit A", "Smith Deposition"
+    document_type: str                      # "exhibit", "deposition", "complaint", etc.
+    file_path: str                          # Path to source file
+    full_text: str = ""                     # Extracted full text
+    pages: Dict[int, str] = field(default_factory=dict)  # page_num -> text
+    paragraphs: Dict[int, str] = field(default_factory=dict)  # para_num -> text
+    lines: Dict[str, str] = field(default_factory=dict)  # "page:line" -> text
+    page_count: int = 0
+    paragraph_count: int = 0
+
+
+@dataclass
+class RecordVerificationResult:
+    """Outcome of verifying a record citation against the corpus."""
+
+    status: str                     # "Verified", "Document Not Found", "Location Mismatch", "Quote Mismatch", "Needs Review"
+    confidence: int                 # 0-100
+    evidence: str = ""              # Human-readable explanation
+    matched_document: Optional[str] = None  # Label of matched corpus doc
+    matched_text: Optional[str] = None      # Text found at the cited location
+    suggested_location: Optional[str] = None  # Where the quote was actually found
+    quote_similarity: Optional[float] = None  # 0-1 similarity score

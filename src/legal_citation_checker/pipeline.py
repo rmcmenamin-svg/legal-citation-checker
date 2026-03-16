@@ -48,6 +48,10 @@ from .verifier import (
     triplet_match,
 )
 
+from .corpus_index import CorpusIndex
+from .record_extractor import extract_record_citations
+from .record_verifier import RecordVerifier, verify_record_citations
+
 logger = logging.getLogger("legal_citation_checker")
 
 # Re-export for backward compatibility with existing imports.
@@ -219,6 +223,89 @@ class CitationChecker:
             citations=audited_citations,
             notes=notes,
         )
+
+    def process_with_corpus(
+        self,
+        brief_path: Path,
+        corpus_dir: Optional[Path] = None,
+        corpus_manifest: Optional[Dict[str, str]] = None,
+        include_caselaw: bool = True,
+    ) -> Dict[str, Any]:
+        """Run record citation verification against a closed corpus.
+
+        Args:
+            brief_path: Path to the brief document.
+            corpus_dir: Directory containing source documents (filenames as labels).
+            corpus_manifest: Explicit mapping of labels to file paths.
+            include_caselaw: Also run standard case-law verification.
+
+        Returns:
+            Dict with 'caselaw_report' (AuditReport or None) and
+            'record_results' (list of (RecordCitation, RecordVerificationResult)).
+        """
+        started = time.perf_counter()
+        path = Path(brief_path)
+
+        if not path.exists():
+            raise FileNotFoundError(f"Brief not found: {path}")
+
+        # Extract brief text
+        suffix = path.suffix.lower()
+        if suffix == ".docx":
+            document_text = extract_docx_text(path)
+        elif suffix == ".pdf":
+            document_text = extract_pdf_text(path)
+        else:
+            raise ValueError(f"Unsupported format: {suffix}")
+
+        # Build corpus index
+        if corpus_dir:
+            self._log(f"Building corpus index from {corpus_dir}")
+            corpus = CorpusIndex.from_directory(corpus_dir)
+        elif corpus_manifest:
+            self._log("Building corpus index from manifest")
+            corpus = CorpusIndex.from_manifest(corpus_manifest)
+        else:
+            raise ValueError("Must provide either corpus_dir or corpus_manifest")
+
+        self._log(f"Corpus: {len(corpus.documents)} documents indexed")
+
+        # Extract record citations from the brief
+        self._log("Extracting record citations from brief")
+        record_citations = extract_record_citations(document_text)
+        self._log(f"Found {len(record_citations)} record citations")
+
+        # Verify record citations against corpus
+        record_results = verify_record_citations(record_citations, corpus)
+
+        # Optionally also run case-law verification
+        caselaw_report = None
+        if include_caselaw:
+            caselaw_report = self.process_document(path)
+
+        elapsed = time.perf_counter() - started
+
+        # Summarize
+        verified = sum(1 for _, r in record_results if r.status == "Verified")
+        not_found = sum(1 for _, r in record_results if r.status == "Document Not Found")
+        location_mm = sum(1 for _, r in record_results if r.status == "Location Mismatch")
+        quote_mm = sum(1 for _, r in record_results if r.status == "Quote Mismatch")
+
+        return {
+            "brief_path": str(path),
+            "corpus_documents": corpus.document_labels,
+            "record_citations_count": len(record_citations),
+            "record_results": record_results,
+            "record_summary": {
+                "verified": verified,
+                "document_not_found": not_found,
+                "location_mismatch": location_mm,
+                "quote_mismatch": quote_mm,
+                "total": len(record_results),
+            },
+            "caselaw_report": caselaw_report,
+            "processing_seconds": elapsed,
+        }
 
     # -- Backward-compatible static/instance methods used by tests --
 
