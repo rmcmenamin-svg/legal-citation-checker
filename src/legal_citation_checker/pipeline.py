@@ -114,10 +114,12 @@ class CitationChecker:
         # Build list of citations needing verification (check cache first).
         to_verify: List[Tuple[ExtractedCitation, str]] = []
         cached_decisions: Dict[int, VerificationDecision] = {}
+        dedup_key_for: Dict[int, str] = {}  # citation.index -> cache_key (for dedup lookup)
         seen_keys: set = set()
         for citation in extracted_citations:
             base = strip_pincite(citation.normalized_citation or citation.raw_citation)
             cache_key = self._cache_key(base)
+            dedup_key_for[citation.index] = cache_key
             if not self.disable_cache and cache_key in self._verification_cache:
                 cached_at, cached_decision = self._verification_cache[cache_key]
                 if (time.monotonic() - cached_at) > self.cache_ttl:
@@ -127,8 +129,7 @@ class CitationChecker:
                     cached_decisions[citation.index] = cached_decision.clone()
                 self._log(f"Cache hit for citation {citation.index}: {citation.normalized_citation}")
             elif cache_key in seen_keys:
-                self._log(f"Dedup: citation {citation.index} ({base}) already queued")
-                to_verify.append((citation, cache_key))
+                self._log(f"Dedup: citation {citation.index} ({base}) already queued — will reuse result")
             else:
                 seen_keys.add(cache_key)
                 to_verify.append((citation, cache_key))
@@ -159,10 +160,28 @@ class CitationChecker:
                 self._verification_cache[key] = decision.clone()
                 verified_decisions[cit.index] = decision
 
-        # Assemble audit results in original order.
+        # Assemble audit results in original order, deduplicating.
         audited_citations: List[CitationAudit] = []
+        reported_keys: set = set()
         for citation in extracted_citations:
-            decision = cached_decisions.get(citation.index) or verified_decisions[citation.index]
+            ck = dedup_key_for[citation.index]
+            if ck in reported_keys:
+                continue  # skip duplicate citation
+            reported_keys.add(ck)
+            decision = cached_decisions.get(citation.index)
+            if decision is None:
+                decision = verified_decisions.get(citation.index)
+            if decision is None:
+                # Deduped citation — look up by cache key from verification cache
+                if ck in self._verification_cache:
+                    _, decision = self._verification_cache[ck]
+                    decision = decision.clone()
+                else:
+                    decision = VerificationDecision(
+                        status="Needs Review",
+                        confidence=0,
+                        evidence="Deduplication error: result not found.",
+                    )
             bluebook = self._formatter.format(citation.parsed)
             audited_citations.append(
                 CitationAudit(

@@ -201,7 +201,24 @@ class TestRawReporter:
 # ---------------------------------------------------------------------------
 
 class TestVerificationDecisions:
-    def test_all_network_errors_yields_needs_review(self) -> None:
+    def test_all_network_errors_with_zero_results_yields_hallucination(self) -> None:
+        """When all sources error but returned 0 results, flag as hallucination."""
+        checker = make_checker()
+        citation = make_citation()
+
+        def error_http_get(*args: Any, **kwargs: Any) -> Tuple[None, None, str]:
+            return None, None, "Connection timeout"
+
+        checker._verifier._http_get_json = error_http_get  # type: ignore[assignment]
+        # Disable session so only CourtListener attempts are made
+        checker._verifier._session = None  # type: ignore[assignment]
+
+        decision = checker._verify_citation(citation)
+        # Multiple error attempts with 0 results → hallucination
+        assert decision.status == "Potential Hallucination"
+
+    def test_all_network_errors_many_attempts_yields_hallucination(self) -> None:
+        """When many sources are tried and all error with 0 results, flag hallucination."""
         checker = make_checker()
         citation = make_citation()
 
@@ -211,8 +228,8 @@ class TestVerificationDecisions:
         checker._verifier._http_get_json = error_http_get  # type: ignore[assignment]
 
         decision = checker._verify_citation(citation)
-        assert decision.status == "Needs Review"
-        assert decision.confidence == 0
+        # With enough error-but-empty attempts, we flag as potential hallucination
+        assert decision.status == "Potential Hallucination"
 
     def test_real_not_found_yields_hallucination(self) -> None:
         checker = make_checker()

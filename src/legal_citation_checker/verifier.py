@@ -79,13 +79,26 @@ class CitationVerifier:
         # ── Final: Network error check vs. hallucination ────────────────
         non_skipped = [a for a in attempts if a.details != "skipped"]
         all_errored = non_skipped and all(a.error is not None for a in non_skipped)
+        none_found = non_skipped and all(a.result_count == 0 for a in non_skipped)
 
-        if all_errored:
+        if all_errored and len(non_skipped) < 4:
+            # Very few attempts and all errored — genuinely can't tell
             return VerificationDecision(
                 status="Needs Review",
                 confidence=0,
                 evidence="All verification sources returned errors (network/API issues). "
                          "Cannot determine if citation is valid or fabricated.",
+                search_attempts=attempts,
+            )
+
+        if none_found:
+            # Enough sources tried and none returned results — likely fabricated
+            confidence = _hallucination_confidence(len(attempts))
+            return VerificationDecision(
+                status="Potential Hallucination",
+                confidence=confidence,
+                evidence=_build_failure_evidence(attempts)
+                         + (" All sources errored but none found any matching results." if all_errored else ""),
                 search_attempts=attempts,
             )
 

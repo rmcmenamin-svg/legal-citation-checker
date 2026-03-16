@@ -183,7 +183,96 @@ def extract_citations(
             )
         )
 
+    # Fallback: catch citations eyecite missed (e.g. unrecognized reporter editions)
+    _fallback_extract_missed_citations(
+        document_text, normalizer, citations, verbose,
+    )
+
     return citations
+
+
+# Regex for common citation formats that eyecite may not recognise
+# (e.g. future reporter editions like Cal.App.6th, Cal.App.7th, etc.)
+_FALLBACK_CITE_RE = re.compile(
+    r"(?P<volume>\d{1,4})\s+"
+    r"(?P<reporter>"
+    r"Cal\.?\s*App\.?\s*(?:6th|7th|8th|9th|10th)"  # future CA App editions
+    r"|Cal\.?\s*(?:6th|7th|8th)"                     # future CA editions
+    r")"
+    r"\s+(?P<page>\d{1,5})"
+)
+
+
+def _fallback_extract_missed_citations(
+    document_text: DocumentText,
+    normalizer: CitationNormalizer,
+    existing: List[ExtractedCitation],
+    verbose: bool,
+) -> None:
+    """Regex fallback for citations with reporter editions eyecite doesn't know."""
+    # Build set of already-extracted raw spans to avoid duplicates
+    existing_spans = set()
+    for c in existing:
+        existing_spans.add(c.raw_citation.strip())
+
+    text = document_text.full_text
+    for m in _FALLBACK_CITE_RE.finditer(text):
+        raw = m.group(0).strip()
+        if raw in existing_spans:
+            continue
+
+        volume = m.group("volume")
+        reporter = m.group("reporter")
+        page = m.group("page")
+
+        # Try to find party names from surrounding context
+        prefix = text[max(0, m.start() - 100):m.start()]
+        plaintiff, defendant = _extract_parties_from_prefix(prefix)
+
+        # Try to find year from suffix
+        suffix = text[m.end():m.end() + 30]
+        year_match = re.search(r"\((\d{4})\)", suffix)
+        year = year_match.group(1) if year_match else None
+
+        metadata: Dict[str, Any] = {
+            "volume": volume, "reporter": reporter, "page": page,
+            "plaintiff": plaintiff, "defendant": defendant, "year": year,
+        }
+        parsed = ParsedCitation(
+            volume=volume, reporter=reporter, page=page,
+            plaintiff=plaintiff, defendant=defendant, year=year,
+        )
+        normalized, changed = normalizer.normalize(raw, metadata)
+        span = (m.start(), m.end())
+        paragraph_index = _paragraph_for_span(document_text.paragraphs, span)
+        context = _citation_context(document_text, span)
+
+        existing.append(
+            ExtractedCitation(
+                index=len(existing) + 1,
+                raw_citation=raw,
+                normalized_citation=normalized,
+                citation_type="FullCaseCitation",
+                context=context,
+                paragraph_index=paragraph_index,
+                metadata=metadata,
+                bluebook_normalized=changed,
+                parsed=parsed,
+            )
+        )
+        existing_spans.add(raw)
+
+
+def _extract_parties_from_prefix(prefix: str) -> Tuple[Optional[str], Optional[str]]:
+    """Try to extract party names from text immediately before a citation."""
+    # Look for "Party1 v. Party2, " pattern
+    m = re.search(
+        r"([A-Z][A-Za-z'\-.\s]+?)\s+v\.\s+([A-Z][A-Za-z'\-.\s]+?),\s*$",
+        prefix,
+    )
+    if m:
+        return m.group(1).strip().strip("*"), m.group(2).strip().strip("*")
+    return None, None
 
 
 def is_statute_or_regulation(citation_text: str) -> bool:
@@ -210,8 +299,9 @@ def _build_parsed_citation(citation_obj: Any, metadata: Dict[str, Any]) -> Parse
             cite_type = getattr(rep_obj, "cite_type", None)
 
     # Party names and court/year from metadata (already extracted)
-    plaintiff = str(metadata.get("plaintiff") or "").strip() or None
-    defendant = str(metadata.get("defendant") or "").strip() or None
+    # Strip markdown italic markers (*) that may leak through from .md/.docx text
+    plaintiff = str(metadata.get("plaintiff") or "").strip().strip("*").strip() or None
+    defendant = str(metadata.get("defendant") or "").strip().strip("*").strip() or None
     year = str(metadata.get("year") or "").strip() or None
     court = str(metadata.get("court") or "").strip() or None
 
