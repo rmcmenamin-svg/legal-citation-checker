@@ -118,6 +118,22 @@ def main(args: Optional[list] = None) -> int:
                   f"{summary['location_mismatch']} location mismatch, "
                   f"{summary['quote_mismatch']} quote mismatch")
 
+            # Show floating quotes (quotes with no citation binding)
+            floating = result.get("floating_quotes", [])
+            if floating:
+                print(f"\n  \u26a0\ufe0f  FLOATING QUOTES ({len(floating)} found)")
+                print(f"  Quoted text with no confident citation binding:")
+                for fq in floating:
+                    text_preview = fq["text"][:80]
+                    print(f"    \u2022 \"{text_preview}...\"")
+
+            # Show binding summary
+            bs = result.get("binding_summary", {})
+            if bs:
+                print(f"\n  Quote Binding: {bs.get('bound_above_threshold', 0)} confident, "
+                      f"{bs.get('bound_below_threshold', 0)} weak, "
+                      f"{bs.get('floating_quotes', 0)} unbound")
+
             # Also print case-law report if included
             if result.get("caselaw_report"):
                 print(f"\n{'=' * 70}")

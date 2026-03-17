@@ -330,7 +330,12 @@ def extract_record_citations(doc: DocumentText) -> List[RecordCitation]:
 
     Returns a list of RecordCitation objects, deduplicated by span
     (a citation matched by a more specific pattern takes priority).
+
+    Uses proposition-level binding to assign quotes to citations
+    with confidence scoring, replacing naive proximity-based matching.
     """
+    from .proposition_binder import PropositionBinder
+
     text = doc.full_text
     results: List[RecordCitation] = []
     # Track matched spans to avoid overlapping matches
@@ -353,11 +358,33 @@ def extract_record_citations(doc: DocumentText) -> List[RecordCitation]:
             citation.span = span
             citation.context = _get_context(text, span[0], span[1])
             citation.paragraph_index = _find_paragraph_index(doc, span[0])
-            citation.quoted_text = _find_nearby_quote(text, span[0])
+            # Quote assignment deferred to proposition binder below
 
             results.append(citation)
             used_spans.append(span)
 
     # Sort by position in document
     results.sort(key=lambda c: c.span[0])
+
+    # Use proposition binder for structured quote-citation binding
+    if results:
+        binder = PropositionBinder(text)
+        for citation in results:
+            binder.register_citation(
+                start=citation.span[0],
+                end=citation.span[1],
+                raw_text=citation.raw_text,
+            )
+
+        # Assign quotes using tiered confidence scoring
+        for citation in results:
+            binding = binder.get_quote_for_citation(
+                citation.span[0], citation.span[1]
+            )
+            if binding is not None:
+                quote_text, confidence = binding
+                citation.quoted_text = quote_text
+            # If no binding above threshold, quoted_text stays None
+            # (better to flag as "no quote" than assign wrong quote)
+
     return results

@@ -2,7 +2,7 @@
   {
     "file": "llm_generated_brief.docx",
     "type": "llm",
-    "time": 0.52,
+    "time": 0.5,
     "total": 18,
     "verified": 10,
     "hallucination": 8,
@@ -194,7 +194,7 @@
   {
     "file": "FAKE-Tapestry-Test-Brief.docx",
     "type": "fake",
-    "time": 0.01,
+    "time": 0.02,
     "total": 10,
     "verified": 0,
     "hallucination": 10,
@@ -266,7 +266,7 @@
   {
     "file": "FAKE-Wang-Test-Brief.docx",
     "type": "fake",
-    "time": 0.06,
+    "time": 0.04,
     "total": 10,
     "verified": 0,
     "hallucination": 10,
@@ -338,7 +338,7 @@
   {
     "file": "FAKE-Xu-Test-Brief.docx",
     "type": "fake",
-    "time": 0.01,
+    "time": 0.02,
     "total": 10,
     "verified": 0,
     "hallucination": 10,
@@ -410,7 +410,7 @@
   {
     "file": "contract_breach_brief.docx",
     "type": "mixed",
-    "time": 0.2,
+    "time": 0.22,
     "total": 12,
     "verified": 6,
     "hallucination": 6,
@@ -494,7 +494,7 @@
   {
     "file": "employment_discrimination_brief.docx",
     "type": "mixed",
-    "time": 0.14,
+    "time": 0.15,
     "total": 14,
     "verified": 10,
     "hallucination": 4,
@@ -680,7 +680,7 @@
   {
     "file": "immigration_habeas_brief.docx",
     "type": "mixed",
-    "time": 0.08,
+    "time": 0.09,
     "total": 11,
     "verified": 8,
     "hallucination": 3,
@@ -758,7 +758,7 @@
   {
     "file": "sneaky_hallucination_brief.docx",
     "type": "sneaky",
-    "time": 0.21,
+    "time": 0.2,
     "total": 12,
     "verified": 6,
     "hallucination": 6,
@@ -842,7 +842,7 @@
   {
     "file": "delaware_derivative_brief.docx",
     "type": "real",
-    "time": 0.05,
+    "time": 0.04,
     "total": 4,
     "verified": 3,
     "hallucination": 0,
@@ -878,7 +878,7 @@
   {
     "file": "hallucinated_brief.docx",
     "type": "fake",
-    "time": 0.1,
+    "time": 0.11,
     "total": 4,
     "verified": 0,
     "hallucination": 4,
@@ -914,7 +914,7 @@
   {
     "file": "mixed_brief.docx",
     "type": "mixed",
-    "time": 0.07,
+    "time": 0.08,
     "total": 4,
     "verified": 2,
     "hallucination": 2,

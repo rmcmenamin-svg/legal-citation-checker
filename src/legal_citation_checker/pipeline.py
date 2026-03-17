@@ -51,6 +51,7 @@ from .verifier import (
 from .corpus_index import CorpusIndex
 from .record_extractor import extract_record_citations
 from .record_verifier import RecordVerifier, verify_record_citations
+from .proposition_binder import PropositionBinder
 
 logger = logging.getLogger("legal_citation_checker")
 
@@ -275,6 +276,18 @@ class CitationChecker:
         record_citations = extract_record_citations(document_text)
         self._log(f"Found {len(record_citations)} record citations")
 
+        # Build proposition binder for floating quote detection
+        binder = PropositionBinder(document_text.full_text)
+        for c in record_citations:
+            binder.register_citation(c.span[0], c.span[1], c.raw_text)
+        floating_quotes = binder.floating_quotes()
+        binding_summary = binder.binding_summary()
+
+        self._log(
+            f"Quote binding: {binding_summary['bound_above_threshold']} bound, "
+            f"{binding_summary['floating_quotes']} floating"
+        )
+
         # Verify record citations against corpus
         record_results = verify_record_citations(record_citations, corpus)
 
@@ -303,6 +316,11 @@ class CitationChecker:
                 "quote_mismatch": quote_mm,
                 "total": len(record_results),
             },
+            "floating_quotes": [
+                {"text": q.text, "start": q.start, "end": q.end}
+                for q in floating_quotes
+            ],
+            "binding_summary": binding_summary,
             "caselaw_report": caselaw_report,
             "processing_seconds": elapsed,
         }
