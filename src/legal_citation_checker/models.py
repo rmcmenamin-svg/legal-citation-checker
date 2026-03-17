@@ -82,6 +82,12 @@ class CitationAudit:
     evidence: str
     search_attempts: List[SearchAttempt] = field(default_factory=list)
     bluebook_citation: str = ""
+    # Quote verification fields (populated when --verify-quotes is used)
+    quoted_text: Optional[str] = None
+    quote_confidence: Optional[float] = None   # binding confidence (0-1)
+    quote_status: Optional[str] = None          # verified, not_found, skipped, etc.
+    quote_similarity: Optional[float] = None    # similarity to opinion text (0-1)
+    quote_evidence: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         data = asdict(self)
@@ -149,6 +155,7 @@ class ExtractedCitation:
     metadata: Dict[str, Any]
     bluebook_normalized: bool
     parsed: ParsedCitation = field(default_factory=ParsedCitation)
+    span: Optional[Tuple[int, int]] = None  # character offsets in document text
 
 
 # ── Closed-corpus record citation models ───────────────────────────────

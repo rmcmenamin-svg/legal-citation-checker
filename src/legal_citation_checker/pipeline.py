@@ -52,6 +52,7 @@ from .corpus_index import CorpusIndex
 from .record_extractor import extract_record_citations
 from .record_verifier import RecordVerifier, verify_record_citations
 from .proposition_binder import PropositionBinder
+from .quote_verifier import QuoteVerifier
 
 logger = logging.getLogger("legal_citation_checker")
 
@@ -70,12 +71,15 @@ class CitationChecker:
         user_agent: str = "legal-citation-checker/0.1",
         max_workers: int = 4,
         disable_cache: bool = False,
+        verify_quotes: bool = False,
+        cl_api_token: Optional[str] = None,
     ) -> None:
         self.verbose = verbose
         self.request_timeout = request_timeout
         self.user_agent = user_agent
         self.max_workers = max_workers
         self.disable_cache = disable_cache
+        self.verify_quotes = verify_quotes
         self.cache_ttl = 3600  # 1 hour in seconds
         self._verification_cache: Dict[str, Tuple[float, VerificationDecision]] = {}
         self._normalizer = CitationNormalizer()
@@ -94,6 +98,9 @@ class CitationChecker:
             self._session = session
 
         self._verifier = CitationVerifier(self._session, self.request_timeout)
+        self._quote_verifier = QuoteVerifier(
+            self._session, self.request_timeout, api_token=cl_api_token,
+        ) if self.verify_quotes else None
 
     def process_document(self, input_file: Path) -> AuditReport:
         """Run the complete pipeline and return a report object."""
@@ -167,6 +174,23 @@ class CitationChecker:
                 self._verification_cache[key] = decision.clone()
                 verified_decisions[cit.index] = decision
 
+        # Quote verification: bind quotes to citations using PropositionBinder,
+        # then verify quoted text against opinion text from CourtListener.
+        quote_bindings: Dict[int, Tuple[str, float]] = {}  # citation.index -> (quote, confidence)
+        if self._quote_verifier and extracted_citations:
+            self._log("Building quote-citation bindings for case-law citations")
+            binder = PropositionBinder(document_text.full_text)
+            for cit in extracted_citations:
+                if cit.span:
+                    binder.register_citation(cit.span[0], cit.span[1], cit.raw_citation)
+            # Get bound quotes for each citation
+            for cit in extracted_citations:
+                if cit.span:
+                    result = binder.get_quote_for_citation(cit.span[0], cit.span[1])
+                    if result:
+                        quote_bindings[cit.index] = result
+            self._log(f"Found {len(quote_bindings)} quotes bound to case-law citations")
+
         # Assemble audit results in original order, deduplicating.
         audited_citations: List[CitationAudit] = []
         reported_keys: set = set()
@@ -190,6 +214,34 @@ class CitationChecker:
                         evidence="Deduplication error: result not found.",
                     )
             bluebook = self._formatter.format(citation.parsed)
+
+            # Quote verification (if enabled and quote is bound)
+            quoted_text = None
+            quote_confidence = None
+            quote_status = None
+            quote_similarity = None
+            quote_evidence = None
+
+            if self._quote_verifier and citation.index in quote_bindings:
+                q_text, q_conf = quote_bindings[citation.index]
+                quoted_text = q_text
+                quote_confidence = q_conf
+
+                # Only verify quotes for citations that were found to exist
+                if decision.status.startswith("Verified"):
+                    self._log(
+                        f"Verifying quote for citation {citation.index}: "
+                        f"\"{q_text[:50]}...\""
+                    )
+                    qr = self._quote_verifier.verify_quote(
+                        quote_text=q_text,
+                        source_url=decision.source_url,
+                        citation_text=citation.normalized_citation,
+                    )
+                    quote_status = qr.status
+                    quote_similarity = qr.similarity
+                    quote_evidence = qr.evidence
+
             audited_citations.append(
                 CitationAudit(
                     index=citation.index,
@@ -207,6 +259,11 @@ class CitationChecker:
                     evidence=decision.evidence,
                     search_attempts=decision.search_attempts,
                     bluebook_citation=bluebook,
+                    quoted_text=quoted_text,
+                    quote_confidence=quote_confidence,
+                    quote_status=quote_status,
+                    quote_similarity=quote_similarity,
+                    quote_evidence=quote_evidence,
                 )
             )
 

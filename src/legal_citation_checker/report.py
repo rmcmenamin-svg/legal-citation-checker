@@ -89,6 +89,20 @@ class AuditReport:
         if self.skipped_count:
             summary_parts.append(f"{self.skipped_count} skipped (non-case)")
         lines.append("- Summary: " + ", ".join(summary_parts))
+        # Quote verification summary
+        quotes_checked = [c for c in self.citations if c.quote_status]
+        if quotes_checked:
+            q_verified = sum(1 for c in quotes_checked if c.quote_status == "verified")
+            q_not_found = sum(1 for c in quotes_checked if c.quote_status == "not_found")
+            q_unavail = sum(1 for c in quotes_checked if c.quote_status == "text_unavailable")
+            q_parts = [f"{len(quotes_checked)} quotes checked"]
+            if q_verified:
+                q_parts.append(f"{q_verified} verified")
+            if q_not_found:
+                q_parts.append(f"{q_not_found} not found in opinion")
+            if q_unavail:
+                q_parts.append(f"{q_unavail} opinion text unavailable")
+            lines.append("- Quote verification: " + ", ".join(q_parts))
         if self.notes:
             lines.append("- Notes: " + "; ".join(self.notes))
         lines.append("")
@@ -133,6 +147,24 @@ class AuditReport:
             lines.append(f"- Paragraph: {citation.paragraph_index if citation.paragraph_index is not None else 'Unknown'}")
             lines.append(f"- Context: {citation.context}")
             lines.append(f"- Evidence: {citation.evidence}")
+            if citation.quoted_text:
+                q_preview = citation.quoted_text[:80]
+                lines.append(f"- Quoted text: \"{q_preview}{'...' if len(citation.quoted_text) > 80 else ''}\"")
+                if citation.quote_confidence is not None:
+                    lines.append(f"- Quote binding confidence: {citation.quote_confidence:.0%}")
+                if citation.quote_status:
+                    status_label = {
+                        "verified": "Quote verified in opinion",
+                        "not_found": "**Quote NOT found in opinion**",
+                        "text_unavailable": "Opinion text unavailable",
+                        "skipped": "Quote too short",
+                        "no_source": "No source URL",
+                    }.get(citation.quote_status, citation.quote_status)
+                    lines.append(f"- Quote verification: {status_label}")
+                if citation.quote_similarity is not None:
+                    lines.append(f"- Quote similarity: {citation.quote_similarity:.0%}")
+                if citation.quote_evidence:
+                    lines.append(f"- Quote evidence: {citation.quote_evidence}")
             lines.append(f"- Search attempts: {len(citation.search_attempts)}")
 
             if citation.search_attempts:

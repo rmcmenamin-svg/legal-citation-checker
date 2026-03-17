@@ -180,6 +180,7 @@ def extract_citations(
                 metadata=metadata,
                 bluebook_normalized=changed,
                 parsed=parsed,
+                span=span,
             )
         )
 
@@ -258,6 +259,7 @@ def _fallback_extract_missed_citations(
                 metadata=metadata,
                 bluebook_normalized=changed,
                 parsed=parsed,
+                span=span,
             )
         )
         existing_spans.add(raw)

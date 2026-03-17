@@ -56,6 +56,17 @@ def main(args: Optional[list] = None) -> int:
         help="Skip case-law verification (only check record citations against corpus)",
     )
     parser.add_argument(
+        "--verify-quotes",
+        action="store_true",
+        help="Verify quoted text against opinion text from CourtListener",
+    )
+    parser.add_argument(
+        "--cl-token",
+        type=str,
+        default=None,
+        help="CourtListener API token for fetching opinion text (optional; falls back to public pages)",
+    )
+    parser.add_argument(
         "--version",
         action="version",
         version="legal-citation-checker 0.1.0",
@@ -78,6 +89,8 @@ def main(args: Optional[list] = None) -> int:
             verbose=parsed_args.verbose,
             request_timeout=parsed_args.timeout,
             disable_cache=parsed_args.no_cache,
+            verify_quotes=parsed_args.verify_quotes,
+            cl_api_token=parsed_args.cl_token,
         )
 
         # Closed-corpus mode
