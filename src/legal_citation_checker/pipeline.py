@@ -97,13 +97,16 @@ class CitationChecker:
             session.headers.update({"User-Agent": self.user_agent, "Accept": "application/json"})
             self._session = session
 
-        self._verifier = CitationVerifier(self._session, self.request_timeout)
+        self._verifier = CitationVerifier(self._session, self.request_timeout, api_token=cl_api_token)
         self._quote_verifier = QuoteVerifier(
             self._session, self.request_timeout, api_token=cl_api_token,
         ) if self.verify_quotes else None
 
     def process_document(self, input_file: Path) -> AuditReport:
         """Run the complete pipeline and return a report object."""
+        from .legal_escalation import reset_escalation_counter
+        reset_escalation_counter()
+
         started = time.perf_counter()
         path = Path(input_file)
 
@@ -233,10 +236,13 @@ class CitationChecker:
                         f"Verifying quote for citation {citation.index}: "
                         f"\"{q_text[:50]}...\""
                     )
+                    from .verifier import case_name_from_metadata
                     qr = self._quote_verifier.verify_quote(
                         quote_text=q_text,
                         source_url=decision.source_url,
                         citation_text=citation.normalized_citation,
+                        case_name=citation.parsed.case_name or case_name_from_metadata(citation.metadata),
+                        court=citation.parsed.court or str(citation.metadata.get("court") or ""),
                     )
                     quote_status = qr.status
                     quote_similarity = qr.similarity

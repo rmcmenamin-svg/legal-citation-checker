@@ -1,0 +1,1457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Citation Checker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --paper:    #f7f4ef;
+      --paper-2:  #ede9e0;
+      --ink:      #1c1814;
+      --ink-2:    #3d3530;
+      --muted:    #8c7f72;
+      --border:   #d4c9b8;
+      --border-2: #c4b8a8;
+      --rail-w:   420px;
+      --hdr-h:    52px;
+
+      --verified:        #1a5c32;
+      --verified-bg:     #edf7f1;
+      --verified-border: #4caf72;
+      --flagged:         #8b1a1a;
+      --flagged-bg:      #fdf0f0;
+      --flagged-border:  #c41e1e;
+      --review:          #7a5c1a;
+      --review-bg:       #fdf8ee;
+      --review-border:   #d4981a;
+      --skipped:         #5a5a5a;
+      --skipped-bg:      #f5f5f3;
+      --skipped-border:  #aaa;
+      --accent:          #1a3a5c;
+      --accent-bg:       #eef3f8;
+    }
+
+    html, body {
+      height: 100%;
+      font-family: 'Source Serif 4', Georgia, serif;
+      background: var(--paper);
+      color: var(--ink);
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    /* ── Header ─────────────────────────────────────────── */
+    .app-header {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      height: var(--hdr-h);
+      background: var(--ink);
+      display: flex; align-items: center; padding: 0 24px; gap: 16px;
+    }
+    .app-title {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 1.1rem; font-weight: 600;
+      color: var(--paper); letter-spacing: 0.02em;
+    }
+    .app-title span {
+      font-weight: 400; opacity: 0.45; margin-left: 8px;
+      font-size: 0.72rem; font-family: 'IBM Plex Mono', monospace;
+      letter-spacing: 0;
+    }
+    .hdr-spacer { flex: 1; }
+    .hdr-meta {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.67rem; color: rgba(247,244,239,0.4);
+      display: flex; align-items: center; gap: 6px;
+    }
+    .health-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: #555; transition: background 0.4s;
+    }
+
+    /* ── Layout ─────────────────────────────────────────── */
+    .app-body {
+      display: flex;
+      padding-top: var(--hdr-h);
+      min-height: 100vh;
+    }
+
+    /* ── Rail ───────────────────────────────────────────── */
+    .rail {
+      width: var(--rail-w); min-width: var(--rail-w);
+      background: #fff;
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      position: sticky; top: var(--hdr-h);
+      height: calc(100vh - var(--hdr-h));
+      overflow-y: auto;
+      padding: 18px 18px 22px;
+    }
+
+    .mode-tabs {
+      display: flex; gap: 2px; margin-bottom: 18px;
+      background: var(--paper-2); border-radius: 6px; padding: 3px;
+    }
+    .mode-tab {
+      flex: 1; padding: 6px 0; border: none; background: none;
+      font-family: 'IBM Plex Mono', monospace; font-size: 0.7rem;
+      color: var(--muted); cursor: pointer; border-radius: 4px;
+      transition: all 0.15s;
+    }
+    .mode-tab.active {
+      background: #fff; color: var(--ink);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.12); font-weight: 500;
+    }
+
+    .input-panel { display: none; flex-direction: column; gap: 12px; }
+    .input-panel.active { display: flex; }
+
+    .field-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.63rem; text-transform: uppercase; letter-spacing: 0.1em;
+      color: var(--muted); margin-bottom: 4px;
+    }
+
+    textarea {
+      width: 100%; min-height: 180px; padding: 10px 12px;
+      border: 1px solid var(--border); border-radius: 5px;
+      background: var(--paper);
+      font-family: 'Source Serif 4', serif; font-size: 0.85rem;
+      color: var(--ink); line-height: 1.55; resize: vertical;
+      outline: none; transition: border-color 0.15s;
+    }
+    textarea:focus { border-color: var(--accent); }
+    textarea::placeholder { color: var(--muted); font-style: italic; }
+
+    .dropzone {
+      border: 1.5px dashed var(--border); border-radius: 5px;
+      background: var(--paper); padding: 22px 16px;
+      text-align: center; cursor: pointer; transition: all 0.15s;
+      position: relative;
+    }
+    .dropzone input[type=file] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer;
+      width: 100%; height: 100%;
+    }
+    .dropzone:hover, .dropzone.over {
+      border-color: var(--accent); background: var(--accent-bg);
+    }
+    .drop-icon { font-size: 1.4rem; margin-bottom: 5px; }
+    .drop-text { font-size: 0.8rem; color: var(--ink-2); }
+    .drop-hint { font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
+    .file-selected {
+      margin-top: 6px; font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.68rem; color: var(--verified); display: none;
+    }
+
+    .corpus-stations { display: flex; gap: 12px; }
+    .corpus-station { flex: 1; display: flex; flex-direction: column; gap: 7px; }
+    .station-label { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-2); }
+    .station-drop { min-height: 80px; }
+    .station-btn {
+      width: 100%; padding: 7px; font-size: 0.72rem; font-family: 'IBM Plex Mono', monospace;
+      background: var(--paper-2); border: 1px solid var(--border); border-radius: 4px;
+      cursor: pointer; color: var(--ink-2); transition: border-color 0.15s;
+    }
+    .station-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .corpus-list { display: flex; flex-direction: column; gap: 4px; }
+    .corpus-chip {
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--paper); border: 1px solid var(--border);
+      border-radius: 4px; padding: 4px 8px;
+      font-size: 0.7rem; font-family: 'IBM Plex Mono', monospace; color: var(--ink-2);
+    }
+    .corpus-chip button {
+      background: none; border: none; cursor: pointer;
+      color: var(--muted); font-size: 0.78rem; padding: 0 2px; line-height: 1;
+    }
+    .corpus-chip button:hover { color: var(--flagged); }
+    .corpus-add-btn {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 0.7rem; font-family: 'IBM Plex Mono', monospace;
+      color: var(--accent); cursor: pointer; background: none;
+      border: 1px dashed var(--border); border-radius: 4px;
+      padding: 5px 10px; margin-top: 6px; position: relative;
+      transition: border-color 0.15s;
+    }
+    .corpus-add-btn:hover { border-color: var(--accent); }
+    .corpus-add-btn input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+
+    .advanced-toggle {
+      font-family: 'IBM Plex Mono', monospace; font-size: 0.67rem;
+      color: var(--muted); cursor: pointer; background: none; border: none;
+      padding: 3px 0; display: flex; align-items: center; gap: 4px; margin-top: 2px;
+    }
+    .advanced-toggle:hover { color: var(--ink-2); }
+    .advanced-body { display: none; flex-direction: column; gap: 10px; margin-top: 8px; }
+    .advanced-body.open { display: flex; }
+
+    .opt-row { display: flex; align-items: center; gap: 8px; }
+    .opt-row input[type=checkbox] { accent-color: var(--accent); cursor: pointer; }
+    .opt-row label { font-size: 0.78rem; color: var(--ink-2); cursor: pointer; }
+
+    input[type=text], select {
+      width: 100%; padding: 6px 10px;
+      border: 1px solid var(--border); border-radius: 4px;
+      background: var(--paper); font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.73rem; color: var(--ink); outline: none;
+      transition: border-color 0.15s;
+    }
+    input[type=text]:focus, select:focus { border-color: var(--accent); }
+
+    .sample-links {
+      display: flex; align-items: center; gap: 8px; margin-top: 5px;
+      font-family: 'IBM Plex Mono', monospace; font-size: 0.63rem; color: var(--muted);
+    }
+    .sample-link {
+      color: var(--accent); cursor: pointer; text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    .rail-actions {
+      margin-top: auto; padding-top: 14px;
+      display: flex; flex-direction: column; gap: 7px;
+    }
+    .errbox {
+      display: none; background: var(--flagged-bg);
+      border: 1px solid var(--flagged-border); border-radius: 4px;
+      padding: 8px 12px; color: var(--flagged); font-size: 0.78rem;
+    }
+    .spinner-row {
+      display: none; align-items: center; justify-content: center; gap: 8px;
+      font-family: 'IBM Plex Mono', monospace; font-size: 0.7rem; color: var(--muted);
+    }
+    .spinner-row.active { display: flex; }
+    .spin-dot {
+      width: 5px; height: 5px; border-radius: 50%; background: var(--muted);
+      animation: pulse-dot 1.4s ease-in-out infinite;
+    }
+    .spin-dot:nth-child(2) { animation-delay: 0.2s; }
+    .spin-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes pulse-dot {
+      0%, 80%, 100% { transform: scale(0.6); opacity: 0.3; }
+      40% { transform: scale(1); opacity: 1; }
+    }
+
+    .btn-run {
+      padding: 11px 16px; border: none; border-radius: 5px;
+      background: var(--ink); color: var(--paper);
+      font-family: 'Playfair Display', serif; font-size: 0.92rem;
+      font-weight: 500; cursor: pointer; letter-spacing: 0.02em;
+      transition: background 0.15s;
+    }
+    .btn-run:hover:not(:disabled) { background: #2d2520; }
+    .btn-run:disabled { opacity: 0.38; cursor: not-allowed; }
+
+    .btn-ghost {
+      padding: 7px 16px; border: 1px solid var(--border); border-radius: 5px;
+      background: none; color: var(--muted); font-size: 0.76rem;
+      cursor: pointer; transition: all 0.15s; font-family: 'IBM Plex Mono', monospace;
+    }
+    .btn-ghost:hover { border-color: var(--ink-2); color: var(--ink-2); }
+
+    /* ── Results pane ───────────────────────────────────── */
+    .results-pane {
+      flex: 1; padding: 28px 40px 48px;
+      max-width: 860px;
+    }
+    @keyframes fadein {
+      from { opacity: 0; transform: translateY(5px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .results-empty {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; min-height: 60vh;
+      color: var(--muted); text-align: center;
+    }
+    .results-empty-icon { font-size: 2.8rem; margin-bottom: 14px; opacity: 0.28; }
+    .results-empty-title {
+      font-family: 'Playfair Display', serif; font-size: 1.25rem;
+      color: var(--ink-2); margin-bottom: 7px; opacity: 0.55;
+    }
+    .results-empty-sub { font-size: 0.83rem; max-width: 260px; line-height: 1.7; }
+
+    /* Summary bar */
+    .summary-bar {
+      display: flex; align-items: center; gap: 22px; flex-wrap: wrap;
+      padding: 13px 18px; background: #fff; border: 1px solid var(--border);
+      border-radius: 7px; margin-bottom: 22px;
+    }
+    .sum-stat { display: flex; flex-direction: column; }
+    .sum-num {
+      font-family: 'IBM Plex Mono', monospace; font-size: 1.45rem;
+      font-weight: 500; line-height: 1.1;
+    }
+    .sum-label {
+      font-family: 'IBM Plex Mono', monospace; font-size: 0.6rem;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--muted); margin-top: 1px;
+    }
+    .sum-divider { width: 1px; height: 34px; background: var(--border); }
+    .sum-stat.flagged .sum-num  { color: var(--flagged); }
+    .sum-stat.verified .sum-num { color: var(--verified); }
+    .sum-stat.review .sum-num   { color: var(--review); }
+    .sum-time {
+      margin-left: auto; font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.67rem; color: var(--muted);
+    }
+
+    /* Prefiling checklist */
+    .checklist {
+      border: 1.5px solid var(--flagged-border); border-radius: 7px;
+      background: var(--flagged-bg); margin-bottom: 24px; overflow: hidden;
+    }
+    .checklist-hdr {
+      padding: 12px 18px; background: var(--flagged);
+      font-family: 'Playfair Display', serif; font-size: 0.92rem;
+      color: #fff; font-weight: 600; letter-spacing: 0.02em;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .checklist-hdr-count {
+      font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem;
+      font-weight: 400; opacity: 0.75;
+    }
+    .checklist-items { padding: 12px 18px; display: flex; flex-direction: column; gap: 10px; }
+    .checklist-item  { display: flex; gap: 11px; align-items: flex-start; }
+    .chl-check {
+      width: 15px; height: 15px; border: 1.5px solid var(--flagged-border);
+      border-radius: 3px; flex-shrink: 0; margin-top: 3px; cursor: pointer;
+      background: #fff; appearance: none; -webkit-appearance: none;
+      transition: all 0.15s;
+    }
+    .chl-check:checked { background: var(--flagged); border-color: var(--flagged); }
+    .chl-text { flex: 1; }
+    .chl-cite {
+      font-family: 'IBM Plex Mono', monospace; font-size: 0.76rem;
+      color: var(--flagged); font-weight: 500;
+    }
+    .chl-sub { font-size: 0.8rem; color: var(--ink-2); margin-top: 1px; }
+    .checklist-ok {
+      padding: 10px 18px; border-top: 1px solid var(--border);
+      font-size: 0.78rem; color: var(--verified); background: var(--verified-bg);
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    /* Section headers */
+    .section-hdr {
+      font-family: 'IBM Plex Mono', monospace; font-size: 0.65rem;
+      text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted);
+      padding-bottom: 7px; border-bottom: 1px solid var(--border);
+      margin-bottom: 11px; margin-top: 26px;
+    }
+    .section-hdr:first-child { margin-top: 0; }
+
+    /* Citation cards */
+    .results-list { display: flex; flex-direction: column; gap: 9px; }
+
+    .ccard {
+      background: #fff; border-radius: 6px;
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--skipped-border);
+      overflow: hidden;
+      animation: card-enter 0.25s ease both;
+    }
+    .ccard.verified    { border-left-color: var(--verified-border); }
+    .ccard.flagged     { border-left-color: var(--flagged-border); }
+    .ccard.review      { border-left-color: var(--review-border); }
+    .ccard.quote-fail  { border-left-color: var(--flagged-border); }
+
+    @keyframes card-enter {
+      from { opacity: 0; transform: translateY(4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .ccard-header {
+      padding: 13px 16px 9px;
+      display: flex; align-items: flex-start;
+      justify-content: space-between; gap: 12px;
+    }
+    .ccard-cite {
+      font-family: 'Playfair Display', serif; font-size: 0.98rem;
+      font-weight: 500; color: var(--ink); line-height: 1.35; flex: 1;
+    }
+    .ccard-right {
+      display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0;
+    }
+
+    .verdict-badge {
+      font-family: 'IBM Plex Mono', monospace; font-size: 0.63rem;
+      font-weight: 500; letter-spacing: 0.07em; text-transform: uppercase;
+      padding: 3px 7px; border-radius: 3px;
+    }
+    .verdict-badge.verified   { background: var(--verified-bg); color: var(--verified); }
+    .verdict-badge.flagged    { background: var(--flagged); color: #fff; }
+    .verdict-badge.review     { background: var(--review-bg); color: var(--review); border: 1px solid var(--review-border); }
+    .verdict-badge.quote-fail { background: var(--flagged); color: #fff; }
+    .verdict-badge.skipped    { background: var(--skipped-bg); color: var(--skipped); }
+
+    .conf-num {
+      font-family: 'IBM Plex Mono', monospace; font-size: 0.67rem; color: var(--muted);
+    }
+
+    .ccard-body {
+      padding: 0 16px 13px; display: flex; flex-direction: column; gap: 8px;
+    }
+    .ccard-subtext { font-size: 0.78rem; color: var(--muted); font-style: italic; }
+
+    .bluebook-line {
+      font-family: 'IBM Plex Mono', monospace; font-size: 0.67rem;
+      color: var(--muted); margin-top: 2px;
+    }
+
+    /* Brief passage block */
+    .passage-block {
+      background: var(--paper); border-left: 3px solid var(--border);
+      padding: 9px 12px; font-size: 0.8rem; line-height: 1.7;
+      color: var(--ink-2); border-radius: 0 4px 4px 0;
+    }
+    mark.cite-mark {
+      background: rgba(196,30,30,0.1); color: var(--flagged);
+      border-radius: 2px; padding: 0 2px;
+    }
+    .ccard.verified mark.cite-mark {
+      background: rgba(26,92,50,0.1); color: var(--verified);
+    }
+    .ccard.review mark.cite-mark {
+      background: rgba(122,92,26,0.1); color: var(--review);
+    }
+
+    /* Evidence box */
+    .evidence-box {
+      background: var(--paper); border: 1px solid var(--border);
+      border-radius: 4px; padding: 8px 10px;
+      font-size: 0.78rem; color: var(--ink-2); line-height: 1.65;
+    }
+    .ev-key {
+      font-family: 'IBM Plex Mono', monospace; font-size: 0.62rem;
+      text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted);
+      display: block; margin-bottom: 3px;
+    }
+
+    /* Quote box */
+    .quote-box {
+      border: 1px solid var(--border); border-radius: 4px; overflow: hidden;
+    }
+    .quote-box-head {
+      display: flex; align-items: baseline; justify-content: space-between;
+      padding: 7px 10px; background: var(--paper-2); font-size: 0.78rem;
+    }
+    .q-text  { font-style: italic; color: var(--ink-2); flex: 1; line-height: 1.5; }
+    .q-status {
+      font-family: 'IBM Plex Mono', monospace; font-size: 0.63rem;
+      letter-spacing: 0.04em; flex-shrink: 0; margin-left: 10px; white-space: nowrap;
+    }
+    .q-status.ok     { color: var(--verified); }
+    .q-status.fail   { color: var(--flagged); font-weight: 500; }
+    .q-status.unavail{ color: var(--review); }
+    .quote-box-evidence {
+      padding: 5px 10px; font-size: 0.7rem; color: var(--muted);
+      font-family: 'IBM Plex Mono', monospace; border-top: 1px solid var(--border);
+    }
+
+    /* Action block */
+    .action-toggle {
+      font-family: 'IBM Plex Mono', monospace; font-size: 0.67rem;
+      color: var(--accent); background: none; border: none; cursor: pointer;
+      padding: 0; display: flex; align-items: center; gap: 4px;
+    }
+    .action-toggle:hover { text-decoration: underline; }
+    .action-body {
+      display: none; padding: 9px 12px; margin-top: 2px;
+      background: var(--accent-bg); border-radius: 4px;
+      border-left: 3px solid var(--accent);
+      font-size: 0.8rem; color: var(--ink-2); line-height: 1.7;
+    }
+    .action-body.open { display: block; }
+
+    /* Source row */
+    .source-row {
+      font-family: 'IBM Plex Mono', monospace; font-size: 0.67rem;
+      color: var(--muted); display: flex; gap: 12px; align-items: center;
+    }
+    .source-row a { color: var(--accent); text-decoration: none; }
+    .source-row a:hover { text-decoration: underline; }
+
+    /* Search attempts */
+    .att-toggle {
+      font-family: 'IBM Plex Mono', monospace; font-size: 0.63rem;
+      color: var(--muted); background: none; border: none; cursor: pointer; padding: 0;
+    }
+    .att-toggle:hover { color: var(--ink-2); }
+    .att-table {
+      display: none; width: 100%; font-size: 0.67rem;
+      font-family: 'IBM Plex Mono', monospace; border-collapse: collapse; margin-top: 5px;
+    }
+    .att-table.open { display: table; }
+    .att-table th, .att-table td {
+      padding: 3px 6px; text-align: left;
+      border-bottom: 1px solid var(--border); color: var(--ink-2);
+    }
+    .att-table th { color: var(--muted); font-weight: 400; }
+    .att-ok { color: var(--verified); }
+    .att-no { color: var(--flagged); }
+
+    /* Verified collapse */
+    .verified-toggle {
+      display: flex; align-items: center; gap: 8px; cursor: pointer;
+      font-family: 'IBM Plex Mono', monospace; font-size: 0.7rem;
+      color: var(--verified); background: var(--verified-bg);
+      border: 1px solid var(--verified-border); border-radius: 5px;
+      padding: 9px 14px; margin-top: 22px; transition: background 0.15s;
+    }
+    .verified-toggle:hover { background: #d8f0e2; }
+    .verified-list { display: none; }
+    .verified-list.open { display: flex; flex-direction: column; gap: 9px; margin-top: 9px; }
+
+    /* Record cards */
+    .rcard {
+      background: #fff; border-radius: 6px; border: 1px solid var(--border);
+      border-left: 4px solid var(--skipped-border); overflow: hidden;
+      animation: card-enter 0.25s ease both;
+    }
+    .rcard.verified { border-left-color: var(--verified-border); }
+    .rcard.flagged  { border-left-color: var(--flagged-border); }
+    .rcard.mismatch { border-left-color: var(--review-border); }
+
+    .rcard-header {
+      padding: 11px 16px 7px;
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 10px;
+    }
+    .rcard-label {
+      font-family: 'IBM Plex Mono', monospace; font-size: 0.82rem;
+      font-weight: 500; color: var(--ink);
+    }
+    .rcard-type {
+      font-family: 'IBM Plex Mono', monospace; font-size: 0.62rem;
+      color: var(--muted); margin-top: 2px;
+    }
+    .rcard-body { padding: 0 16px 11px; display: flex; flex-direction: column; gap: 6px; }
+
+    /* Floating quotes */
+    .floating-box {
+      border: 1px solid var(--review-border); border-radius: 6px;
+      background: var(--review-bg); padding: 11px 15px; margin-bottom: 18px;
+      font-size: 0.8rem; color: var(--ink-2); line-height: 1.65;
+    }
+
+    /* Notes */
+    .notes {
+      background: var(--review-bg); border: 1px solid var(--review-border);
+      border-radius: 5px; padding: 9px 13px; font-size: 0.78rem;
+      color: var(--ink-2); margin-bottom: 14px;
+    }
+
+    /* Export bar */
+    .export-bar {
+      display: flex; align-items: center; gap: 7px;
+      padding: 6px 0; margin-bottom: 2px;
+    }
+    .export-label {
+      font-family: 'IBM Plex Mono', monospace; font-size: 0.62rem;
+      text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted);
+    }
+    .export-btn {
+      font-family: 'IBM Plex Mono', monospace; font-size: 0.68rem;
+      color: var(--accent); padding: 3px 8px;
+      border: 1px solid var(--border); border-radius: 3px;
+      background: none; cursor: pointer; text-decoration: none;
+      transition: border-color 0.15s; display: inline-block;
+    }
+    .export-btn:hover { border-color: var(--accent); }
+
+    /* Print */
+    @media print {
+      .app-header, .rail, .export-bar { display: none !important; }
+      .app-body { padding-top: 0; }
+      .results-pane { padding: 16px; max-width: 100%; }
+      .ccard, .rcard { break-inside: avoid; }
+      .verified-list, .action-body { display: flex !important; }
+      .att-table { display: none !important; }
+      .verified-toggle { display: none; }
+    }
+
+    /* ── Corpus two-phase UI ─────────────────────────────── */
+    .type-badge { display: inline-block; padding: 1px 7px; border-radius: 3px; font-family: 'IBM Plex Mono', monospace; font-size: 0.62rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; background: var(--accent-bg); color: var(--accent); border: 1px solid #c0d0e0; }
+    .log-panel {
+      background: #1c1814; color: #c8bfb0; font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.68rem; line-height: 1.7; border-radius: 6px; padding: 12px 14px;
+      max-height: 180px; overflow-y: auto; margin-bottom: 16px;
+    }
+    .log-line { opacity: 0; animation: fadeIn 0.3s forwards; }
+    @keyframes fadeIn { to { opacity: 1; } }
+    .confirm-doc {
+      background: #fff; border: 1px solid var(--border); border-radius: 6px;
+      padding: 12px 14px; margin-bottom: 10px;
+    }
+    .confirm-doc-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .confirm-doc-filename { font-family: 'IBM Plex Mono', monospace; font-size: 0.7rem; color: var(--muted); }
+    .confirm-doc-label input {
+      width: 100%; padding: 5px 8px; font-size: 0.82rem; font-family: inherit;
+      border: 1px solid var(--border); border-radius: 4px; background: var(--paper);
+    }
+    .confirm-doc-label input:focus { outline: none; border-color: var(--accent); }
+    .confirm-citations { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+    .confirm-cite-chip {
+      background: var(--accent-bg); color: var(--accent); border: 1px solid #c0d0e0;
+      border-radius: 3px; padding: 1px 6px; font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.63rem;
+    }
+    .confirm-unmatched { margin-top: 16px; }
+    .confirm-unmatched-title { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+
+  </style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="app-title">Citation Checker <span>v3.2.0</span></div>
+  <div class="hdr-spacer"></div>
+  <div class="hdr-meta"><div class="health-dot" id="hDot"></div>Ready</div>
+</header>
+
+<div class="app-body">
+
+  <!-- ── Left Rail ── -->
+  <nav class="rail">
+    <div class="mode-tabs">
+      <button class="mode-tab" onclick="switchTab('text',this)">Text</button>
+      <button class="mode-tab active" onclick="switchTab('file',this)">File</button>
+      <button class="mode-tab" onclick="switchTab('corpus',this)">Corpus</button>
+    </div>
+
+    <!-- Text panel -->
+    <div class="input-panel" id="panel-text">
+      <div>
+        <div class="field-label">Paste text</div>
+        <textarea id="textInput" placeholder="Paste a legal memo, brief, or any text containing citations&#8230;"></textarea>
+        <div class="sample-links">
+          <span>Try:</span>
+          <span class="sample-link" onclick="loadSample('mixed')">Mixed</span>
+          <span class="sample-link" onclick="loadSample('fake')">All fake</span>
+          <span class="sample-link" onclick="loadSample('landmark')">Landmark</span>
+        </div>
+      </div>
+      <div>
+        <button class="advanced-toggle" onclick="toggleAdv('textAdv',this)">
+          <span>&#9657;</span> Advanced
+        </button>
+        <div class="advanced-body" id="textAdv">
+          <div class="opt-row">
+            <input type="checkbox" id="textVerifyQuotes" checked>
+            <label for="textVerifyQuotes">Verify quoted passages</label>
+          </div>
+          <div>
+            <div class="field-label">CourtListener token</div>
+            <input type="text" id="textClToken" placeholder="Optional">
+          </div>
+          <div>
+            <div class="field-label">Citation style</div>
+            <select id="textStyle">
+              <option value="bluebook">Bluebook</option>
+              <option value="csm">California Style Manual</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- File panel -->
+    <div class="input-panel active" id="panel-file">
+      <div>
+        <div class="field-label">Brief or memo</div>
+        <div class="dropzone" id="dz-file">
+          <input type="file" id="fileInput" accept=".doc,.docx,.pdf" onchange="onFileSelect(this,'fname','btnFile')">
+          <div class="drop-icon">&#128196;</div>
+          <div class="drop-text">Drop file or click to browse</div>
+          <div class="drop-hint">.pdf &#183; .docx &#183; .doc</div>
+        </div>
+        <div class="file-selected" id="fname"></div>
+      </div>
+      <div>
+        <button class="advanced-toggle" onclick="toggleAdv('fileAdv',this)">
+          <span>&#9657;</span> Advanced
+        </button>
+        <div class="advanced-body" id="fileAdv">
+          <div class="opt-row">
+            <input type="checkbox" id="fileVerifyQuotes" checked>
+            <label for="fileVerifyQuotes">Verify quoted passages</label>
+          </div>
+          <div>
+            <div class="field-label">CourtListener token</div>
+            <input type="text" id="fileClToken" placeholder="Optional">
+          </div>
+          <div>
+            <div class="field-label">Citation style</div>
+            <select id="fileStyle">
+              <option value="bluebook">Bluebook</option>
+              <option value="csm">California Style Manual</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Corpus panel -->
+    <div class="input-panel" id="panel-corpus">
+      <div class="corpus-stations">
+        <!-- Station 1: Brief -->
+        <div class="corpus-station">
+          <div class="station-label">&#128221; Brief</div>
+          <div class="dropzone station-drop" id="dz-brief">
+            <input type="file" id="briefInput" accept=".doc,.docx,.pdf" onchange="onFileSelect(this,'briefName','btnCorpus')">
+            <div class="drop-text">Drop or click to select</div>
+            <div class="drop-hint">.pdf &middot; .docx &middot; .doc</div>
+          </div>
+          <div class="file-selected" id="briefName"></div>
+          <button class="station-btn" onclick="document.getElementById('briefInput').click()">Choose Brief</button>
+        </div>
+
+        <!-- Station 2: Corpus -->
+        <div class="corpus-station">
+          <div class="station-label">&#128193; Source Documents</div>
+          <div class="dropzone station-drop" id="dz-corpus">
+            <input type="file" id="corpusInput" accept=".doc,.docx,.pdf,.txt" multiple onchange="addCorpusFiles(this)">
+            <div class="drop-text">Drop or click to select</div>
+            <div class="drop-hint">Multiple files &middot; .pdf &middot; .docx &middot; .txt</div>
+          </div>
+          <div class="corpus-list" id="corpusList"></div>
+          <button class="station-btn" onclick="document.getElementById('corpusInput').click()">Add Documents</button>
+        </div>
+      </div>
+      <div class="opt-row">
+        <input type="checkbox" id="corpusIncludeCaselaw" checked>
+        <label for="corpusIncludeCaselaw">Also check case-law citations</label>
+      </div>
+    </div>
+
+    <div class="rail-actions">
+      <div class="errbox" id="errbox"></div>
+      <div class="spinner-row" id="spnRow">
+        <div class="spin-dot"></div>
+        <div class="spin-dot"></div>
+        <div class="spin-dot"></div>
+        <span id="spnMsg">Verifying&#8230;</span>
+      </div>
+      <button class="btn-run" id="btnText"   onclick="verifyText()"   style="display:none">Run Verification</button>
+      <button class="btn-run" id="btnFile"   onclick="verifyFile()"   disabled>Run Verification</button>
+      <button class="btn-run" id="btnCorpus" onclick="corpusAction()" style="display:none" disabled>Process Documents</button>
+      <button class="btn-ghost" onclick="clearAll()">Clear</button>
+    </div>
+  </nav>
+
+  <!-- ── Results ── -->
+  <main class="results-pane">
+    <div class="results-empty" id="resultsEmpty">
+      <div class="results-empty-icon">&#9878;</div>
+      <div class="results-empty-title">Ready to verify</div>
+      <div class="results-empty-sub">Paste text, upload a brief, or run against your case record corpus.</div>
+    </div>
+    <div id="results-section" style="display:none"></div>
+  </main>
+
+</div>
+
+<script>
+const SAMPLES = {
+  mixed:    `The Supreme Court held in Miranda v. Arizona, 384 U.S. 436 (1966), that suspects must be advised of their rights before custodial interrogation. In Brown v. Board of Education, 347 U.S. 483 (1954), the Court unanimously held that racial segregation in public schools was unconstitutional. However, the defendant relies on the fabricated case Patterson v. United States, 412 F.3d 892 (5th Cir. 2003). See also Dobbs v. Jackson Women's Health Organization, 597 U.S. 215 (2022).`,
+  fake:     `This Court should follow Harrison v. Metropolitan Transit Authority, 891 F.3d 247 (2d Cir. 2019). Williams v. City of Oakland, 2021 WL 3847291 (N.D. Cal. 2021), extended that principle. In Douglas v. State Farm Insurance Co., 445 F. Supp. 3d 112 (S.D.N.Y. 2020), the court held insurers may not deny claims without written explanation. Nakamura v. Pacific Gas & Electric Co., 378 F.3d 1019 (9th Cir. 2004), applied the same rule.`,
+  landmark: `Marbury v. Madison, 5 U.S. 137 (1803), established judicial review. McCulloch v. Maryland, 17 U.S. 316 (1819), confirmed congressional supremacy. Chevron U.S.A., Inc. v. Natural Resources Defense Council, 467 U.S. 837 (1984), established deference to agency interpretations. Obergefell v. Hodges, 576 U.S. 644 (2015), held that the Fourteenth Amendment requires states to license same-sex marriages.`
+};
+
+let selectedFile = null, selectedBrief = null, corpusFiles = [], currentTab = 'file';
+let _spinTimer = null;
+let corpusSessionId = null, corpusLabelMap = {}, corpusStep = 'upload'; // upload | confirming | running
+
+function loadSample(k) { document.getElementById('textInput').value = SAMPLES[k]; }
+
+function switchTab(tab, btn) {
+  currentTab = tab;
+  document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.input-panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('panel-' + tab).classList.add('active');
+  ['btnText','btnFile','btnCorpus'].forEach(id => document.getElementById(id).style.display = 'none');
+  const map = {text:'btnText', file:'btnFile', corpus:'btnCorpus'};
+  document.getElementById(map[tab]).style.display = '';
+}
+
+function toggleAdv(id, btn) {
+  const body = document.getElementById(id);
+  body.classList.toggle('open');
+  btn.querySelector('span').textContent = body.classList.contains('open') ? '\u25be' : '\u25b8';
+}
+
+function onFileSelect(input, nameId, btnId) {
+  const f = input.files[0]; if (!f) return;
+  if (nameId === 'fname')     selectedFile  = f;
+  if (nameId === 'briefName') selectedBrief = f;
+  const el = document.getElementById(nameId);
+  el.textContent = '\u2713 ' + f.name; el.style.display = 'block';
+  document.getElementById(btnId).disabled = false;
+}
+
+function addCorpusFiles(input) {
+  for (const f of input.files) {
+    if (!corpusFiles.find(x => x.name === f.name)) corpusFiles.push(f);
+  }
+  renderCorpusList(); input.value = '';
+}
+
+function removeCorpusFile(name) {
+  corpusFiles = corpusFiles.filter(f => f.name !== name);
+  renderCorpusList();
+}
+
+function renderCorpusList() {
+  document.getElementById('corpusList').innerHTML = corpusFiles.map(f =>
+    `<div class="corpus-chip"><span>${esc(f.name)}</span><button onclick="removeCorpusFile('${esc(f.name)}')" title="Remove">\u2715</button></div>`
+  ).join('');
+}
+
+['dz-file','dz-brief','dz-corpus'].forEach(id => {
+  const el = document.getElementById(id); if (!el) return;
+  el.addEventListener('dragover',  e => { e.preventDefault(); el.classList.add('over'); });
+  el.addEventListener('dragleave', () => el.classList.remove('over'));
+  el.addEventListener('drop', e => {
+    e.preventDefault(); el.classList.remove('over');
+    if (id === 'dz-corpus') {
+      for (const f of e.dataTransfer.files) {
+        if (!corpusFiles.find(x => x.name === f.name)) corpusFiles.push(f);
+      }
+      renderCorpusList();
+      return;
+    }
+    const f = e.dataTransfer.files[0]; if (!f) return;
+    if (id === 'dz-file')  { selectedFile  = f; const x=document.getElementById('fname');     x.textContent='\u2713 '+f.name; x.style.display='block'; document.getElementById('btnFile').disabled=false; }
+    if (id === 'dz-brief') { selectedBrief = f; const x=document.getElementById('briefName'); x.textContent='\u2713 '+f.name; x.style.display='block'; document.getElementById('btnCorpus').disabled=false; }
+  });
+});
+
+function clearAll() {
+  document.getElementById('textInput').value = '';
+  selectedFile = null; selectedBrief = null; corpusFiles = [];
+  ['fileInput','briefInput','corpusInput'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+  ['fname','briefName'].forEach(id => { const el=document.getElementById(id); if(el) el.style.display='none'; });
+  document.getElementById('corpusList').innerHTML = '';
+  ['btnFile','btnCorpus'].forEach(id => document.getElementById(id).disabled = true);
+  document.getElementById('results-section').style.display = 'none';
+  document.getElementById('results-section').innerHTML = '';
+  document.getElementById('resultsEmpty').style.display = 'flex';
+  document.getElementById('errbox').style.display = 'none';
+  corpusSessionId = null; corpusLabelMap = {}; corpusStep = 'upload';
+  document.getElementById('btnCorpus').textContent = 'Process Documents';
+}
+
+async function verifyText() {
+  const text = document.getElementById('textInput').value.trim(); if (!text) return;
+  await run(() => fetch('/verify/text', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      text,
+      verify_quotes: document.getElementById('textVerifyQuotes').checked,
+      cl_api_token:  document.getElementById('textClToken').value.trim(),
+      formatter_style: document.getElementById('textStyle').value,
+    })
+  }), 'btnText', 'caselaw');
+}
+
+async function verifyFile() {
+  if (!selectedFile) return;
+  await run(() => {
+    const fd = new FormData();
+    fd.append('file', selectedFile);
+    fd.append('verify_quotes', document.getElementById('fileVerifyQuotes').checked);
+    fd.append('cl_api_token',  document.getElementById('fileClToken').value.trim());
+    fd.append('formatter_style', document.getElementById('fileStyle').value);
+    return fetch('/verify/file', { method:'POST', body: fd });
+  }, 'btnFile', 'caselaw');
+}
+
+function corpusAction() {
+  if (corpusStep === 'upload') prepareCorpus();
+  else if (corpusStep === 'confirming') runCorpus();
+}
+
+async function prepareCorpus() {
+  if (!selectedBrief) return;
+  corpusStep = 'upload'; // reset
+  const btn = document.getElementById('btnCorpus');
+  const spnRow = document.getElementById('spnRow');
+  const errbox = document.getElementById('errbox');
+  btn.disabled = true; spnRow.classList.add('active'); errbox.style.display = 'none';
+  document.getElementById('results-section').style.display = 'none';
+  document.getElementById('resultsEmpty').style.display = 'none';
+  const spnMsg = document.getElementById('spnMsg');
+  spnMsg.textContent = 'Indexing documents\u2026';
+  let si = 0;
+  const msgs = ['Indexing documents\u2026','Extracting citations\u2026','Matching references\u2026'];
+  _spinTimer = setInterval(() => { si=(si+1)%msgs.length; spnMsg.textContent=msgs[si]; }, 2500);
+
+  try {
+    const fd = new FormData();
+    fd.append('brief', selectedBrief);
+    corpusFiles.forEach(f => fd.append('corpus_files', f));
+    const res = await fetch('/corpus/prepare', { method:'POST', body: fd });
+    if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e.detail || 'Server error ' + res.status); }
+    const data = await res.json();
+    corpusSessionId = data.session_id;
+    showConfirmStep(data);
+  } catch(e) {
+    errbox.textContent = e.message; errbox.style.display = 'block';
+    document.getElementById('resultsEmpty').style.display = 'flex';
+  } finally {
+    clearInterval(_spinTimer); spnRow.classList.remove('active'); btn.disabled = false;
+  }
+}
+
+function showConfirmStep(data) {
+  corpusStep = 'confirming';
+  corpusLabelMap = {};  // {citation_label -> filename}
+
+  const btn = document.getElementById('btnCorpus');
+  btn.textContent = 'Run Verification';
+  btn.disabled = false;
+
+  const sec = document.getElementById('results-section');
+  sec.style.display = 'block';
+  document.getElementById('resultsEmpty').style.display = 'none';
+
+  // Log panel
+  const logHtml = data.logs.map((l,i) =>
+    `<div class="log-line" style="animation-delay:${i*60}ms">&gt; ${esc(l)}</div>`
+  ).join('');
+
+  // Build dropdown options from uploaded documents
+  const docOptions = `<option value="__none__">— not in corpus —</option>` +
+    (data.documents || []).map(d =>
+      `<option value="${esc(d.filename)}">${esc(d.filename)}${d.page_count ? ' ('+d.page_count+'p)' : ''}</option>`
+    ).join('');
+
+  // One row per unique citation label found in the brief
+  const citationLabels = data.citation_labels || {};
+  const rows = Object.entries(citationLabels).map(([label, examples]) => {
+    corpusLabelMap[label] = '__none__';
+    const chips = examples.slice(0, 6).map(r => `<span class="confirm-cite-chip">${esc(r)}</span>`).join('');
+    return `<div class="confirm-doc">
+      <div style="display:flex;align-items:flex-start;gap:12px">
+        <div style="flex:1">
+          <div style="font-weight:600;font-size:0.85rem;margin-bottom:4px">${esc(label)}</div>
+          <div class="confirm-citations">${chips}</div>
+        </div>
+        <div style="flex:1">
+          <label style="font-size:0.7rem;color:var(--muted);display:block;margin-bottom:3px">Assign uploaded document</label>
+          <select style="width:100%;padding:5px 8px;font-size:0.78rem;border:1px solid var(--border);border-radius:4px;background:var(--paper)"
+            onchange="corpusLabelMap['${esc(label)}'] = this.value">
+            ${docOptions}
+          </select>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  sec.innerHTML = `
+    <div style="margin-bottom:18px">
+      <div style="font-size:1.05rem;font-weight:600;font-family:'Playfair Display',serif;margin-bottom:4px">Assign Documents to Citations</div>
+      <div style="font-size:0.8rem;color:var(--muted);margin-bottom:12px">For each citation type found in the brief, select the uploaded document it refers to. Then click Run Verification.</div>
+    </div>
+    <div class="log-panel">${logHtml}</div>
+    ${rows}
+  `;
+}
+
+async function runCorpus() {
+  if (!corpusSessionId) return;
+  const btn = document.getElementById('btnCorpus');
+  await run(() => {
+    const fd = new FormData();
+    fd.append('session_id', corpusSessionId);
+    fd.append('label_map', JSON.stringify(corpusLabelMap));
+    fd.append('include_caselaw', document.getElementById('corpusIncludeCaselaw').checked);
+    return fetch('/corpus/run', { method:'POST', body: fd });
+  }, 'btnCorpus', 'corpus');
+  corpusStep = 'upload';
+  btn.textContent = 'Process Documents';
+}
+
+const SPIN_MSGS = ['Extracting citations\u2026','Verifying against database\u2026','Checking quoted passages\u2026','Finalizing report\u2026'];
+
+async function run(fetchFn, btnId, mode) {
+  const btn    = document.getElementById(btnId);
+  const spnRow = document.getElementById('spnRow');
+  const spnMsg = document.getElementById('spnMsg');
+  const errbox = document.getElementById('errbox');
+  btn.disabled = true; spnRow.classList.add('active'); errbox.style.display = 'none';
+  document.getElementById('results-section').style.display = 'none';
+  document.getElementById('resultsEmpty').style.display = 'none';
+  let si = 0; spnMsg.textContent = SPIN_MSGS[si];
+  _spinTimer = setInterval(() => { si=(si+1)%SPIN_MSGS.length; spnMsg.textContent=SPIN_MSGS[si]; }, 3500);
+  try {
+    const res = await fetchFn();
+    if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e.detail || 'Server error ' + res.status); }
+    const data = await res.json();
+    if (mode === 'corpus') renderCorpusResults(data);
+    else renderCaselawResults(data);
+  } catch(e) {
+    errbox.textContent = 'Error: ' + e.message; errbox.style.display = 'block';
+    document.getElementById('resultsEmpty').style.display = 'flex';
+  } finally {
+    clearInterval(_spinTimer); btn.disabled = false; spnRow.classList.remove('active');
+  }
+}
+
+// ── Status translation ────────────────────────────────────────────────────────
+
+function translateStatus(c) {
+  const st = (c.status||'').toLowerCase();
+  const qFail   = c.quote_status === 'not_found';
+  const qUnavail = c.quote_status === 'text_unavailable';
+  const isWL = /^\d{4}\s+WL\s+\d+/i.test(c.raw_citation||'') || /LEXIS/i.test(c.raw_citation||'');
+
+  if (st.includes('hallucination') || st.includes('fabricat')) {
+    return { verdict:'DO NOT USE', sub:'Case not confirmed in any court database', cls:'flagged', priority:0 };
+  }
+  if ((st.startsWith('verified') || st.includes('verified')) && qFail) {
+    return { verdict:'QUOTE NOT IN OPINION', sub:'Real case \u2014 this exact language not found in the opinion', cls:'quote-fail', priority:1 };
+  }
+  if (st.includes('needs review') || st.includes('review')) {
+    return { verdict:'VERIFY BEFORE FILING', sub: isWL ? 'Vendor cite \u2014 confirm on Westlaw or Lexis' : 'Could not confirm in public court database', cls:'review', priority:2 };
+  }
+  if (st.startsWith('verified') || st.includes('verified')) {
+    if (qUnavail) return { verdict:'VERIFY QUOTE', sub:'Citation confirmed \u2014 quoted text could not be checked', cls:'review', priority:3 };
+    const qNote = c.quote_status === 'verified' ? ' \u00b7 Quote confirmed' : '';
+    return { verdict:'SAFE TO CITE', sub:'Verified in court database' + qNote, cls:'verified', priority:5 };
+  }
+  if (st.includes('skipped')) {
+    return { verdict:'SKIPPED', sub:'Vendor cite or short form \u2014 verify manually', cls:'skipped', priority:4 };
+  }
+  return { verdict:'VERIFY BEFORE FILING', sub: c.status||'', cls:'review', priority:2 };
+}
+
+function getActionText(cls, c) {
+  const isWL = c && (/^\d{4}\s+WL\s+\d+/i.test(c.raw_citation||'') || /LEXIS/i.test(c.raw_citation||''));
+  if (cls === 'flagged')    return 'Search Westlaw or Lexis for this exact citation. If the case does not exist, remove it from the brief. If a similar case exists at a different citation, update the cite and confirm the underlying proposition is actually supported.';
+  if (cls === 'quote-fail') return 'Open the opinion and search for this quoted language. If it does not appear verbatim, remove the quotation marks and paraphrase, or use language the court actually wrote. Filing a brief with fabricated quotations creates sanctions exposure under Rule 11 and Rule 3.3.';
+  if (cls === 'review') {
+    if (isWL) return 'Westlaw and Lexis citations require a subscription to verify. Confirm this citation exists and the parenthetical accurately describes the holding before filing.';
+    return 'Verify on Westlaw or Lexis before filing. This citation could not be confirmed in public court databases. It may be a recent decision not yet indexed, a citation behind a paywall, or a citation error.';
+  }
+  return 'Review this citation before filing.';
+}
+
+// ── Prefiling checklist ───────────────────────────────────────────────────────
+
+function buildChecklist(citations) {
+  const items = citations
+    .map(c => ({c, t: translateStatus(c)}))
+    .filter(({t}) => t.priority < 4)
+    .sort((a,b) => a.t.priority - b.t.priority);
+  if (!items.length) return '';
+
+  const verifiedCount = citations.filter(c => translateStatus(c).priority >= 4).length;
+  const rows = items.map(({c, t}) => `
+    <div class="checklist-item">
+      <input type="checkbox" class="chl-check">
+      <div class="chl-text">
+        <div class="chl-cite">${esc(c.raw_citation)}</div>
+        <div class="chl-sub">${t.verdict} \u2014 ${t.sub}</div>
+      </div>
+    </div>`).join('');
+
+  const okPart = verifiedCount
+    ? `<div class="checklist-ok">\u2713 ${verifiedCount} citation${verifiedCount!==1?'s':''} verified \u2014 no action needed</div>`
+    : '';
+
+  return `<div class="checklist">
+    <div class="checklist-hdr">Prefiling Checklist <span class="checklist-hdr-count">${items.length} item${items.length!==1?'s':''} require attention</span></div>
+    <div class="checklist-items">${rows}</div>
+    ${okPart}
+  </div>`;
+}
+
+// ── Render caselaw ────────────────────────────────────────────────────────────
+
+function renderCaselawResults(data) {
+  document.getElementById('resultsEmpty').style.display = 'none';
+  const sec = document.getElementById('results-section');
+  sec.innerHTML = '';
+
+  if (data.notes && data.notes.length) {
+    const nb = document.createElement('div'); nb.className='notes';
+    nb.textContent = data.notes.join(' '); sec.appendChild(nb);
+  }
+
+  sec.innerHTML += buildSummaryBar(data);
+
+  if (data.citations && data.citations.length) {
+    sec.innerHTML += buildChecklist(data.citations);
+  }
+
+  // Export bar
+  if (data._raw || data.citations) {
+    sec.appendChild(buildExportBar(data._raw||{}, 'citation-report', data.citations||[]));
+  }
+
+  if (!data.citations || !data.citations.length) {
+    sec.innerHTML += '<div style="color:var(--muted);font-size:0.8rem;padding:14px 0">No verifiable citations found.</div>';
+    sec.style.display = 'block'; return;
+  }
+
+  const sorted  = [...data.citations].sort((a,b) => translateStatus(a).priority - translateStatus(b).priority);
+  const issues   = sorted.filter(c => translateStatus(c).priority < 4);
+  const verified = sorted.filter(c => translateStatus(c).priority >= 4);
+
+  if (issues.length) {
+    const hdr = document.createElement('div'); hdr.className = 'section-hdr';
+    hdr.textContent = `Requires Attention (${issues.length})`;
+    sec.appendChild(hdr);
+    const list = document.createElement('div'); list.className = 'results-list';
+    issues.forEach((c,i) => { const el=buildCaselawCard(c,i); el.style.animationDelay=(i*0.04)+'s'; list.appendChild(el); });
+    sec.appendChild(list);
+  }
+
+  if (verified.length) {
+    const tog = document.createElement('div'); tog.className = 'verified-toggle';
+    tog.setAttribute('role','button');
+    tog.innerHTML = `<span id="vtArrow">\u25b8</span> ${verified.length} verified citation${verified.length!==1?'s':''} \u2014 no action needed`;
+    tog.onclick = () => {
+      const vl = document.getElementById('verList'); vl.classList.toggle('open');
+      document.getElementById('vtArrow').textContent = vl.classList.contains('open') ? '\u25be' : '\u25b8';
+    };
+    sec.appendChild(tog);
+    const vlist = document.createElement('div'); vlist.className='verified-list'; vlist.id='verList';
+    verified.forEach((c,i) => { const el=buildCaselawCard(c,'v'+i); el.style.animationDelay=(i*0.03)+'s'; vlist.appendChild(el); });
+    sec.appendChild(vlist);
+  }
+
+  sec.style.display = 'block';
+}
+
+function buildSummaryBar(data) {
+  const h  = data.potential_hallucinations||data.hallucination_count||0;
+  const v  = data.verified||data.verified_count||0;
+  const r  = data.needs_review||data.needs_review_count||0;
+  const t  = data.total_citations||0;
+  const s  = data.processing_seconds||0;
+  const qF = (data.citations||[]).filter(c=>c.quote_status==='not_found').length;
+  const qC = (data.citations||[]).filter(c=>c.quote_status).length;
+  const qPart = qC ? `
+    <div class="sum-divider"></div>
+    <div class="sum-stat${qF?' flagged':''}">
+      <div class="sum-num">${qF||qC}</div>
+      <div class="sum-label">${qF?'Quote Fail':'Quotes'}</div>
+    </div>` : '';
+
+  return `<div class="summary-bar">
+    <div class="sum-stat"><div class="sum-num">${t}</div><div class="sum-label">Citations</div></div>
+    <div class="sum-divider"></div>
+    <div class="sum-stat verified"><div class="sum-num">${v}</div><div class="sum-label">Verified</div></div>
+    <div class="sum-divider"></div>
+    <div class="sum-stat flagged"><div class="sum-num">${h}</div><div class="sum-label">Flagged</div></div>
+    <div class="sum-divider"></div>
+    <div class="sum-stat review"><div class="sum-num">${r}</div><div class="sum-label">Review</div></div>
+    ${qPart}
+    <div class="sum-time">${s}s</div>
+  </div>`;
+}
+
+function buildExportBar(raw, basename, citations) {
+  const bar = document.createElement('div'); bar.className = 'export-bar';
+  const lbl = document.createElement('span'); lbl.className='export-label'; lbl.textContent='Export'; bar.appendChild(lbl);
+
+  if (raw.markdown) {
+    const a = document.createElement('a'); a.className='export-btn'; a.textContent='Markdown';
+    a.href = URL.createObjectURL(new Blob([raw.markdown],{type:'text/plain'}));
+    a.download = basename+'.md'; bar.appendChild(a);
+  }
+  if (raw.json) {
+    const a = document.createElement('a'); a.className='export-btn'; a.textContent='JSON';
+    a.href = URL.createObjectURL(new Blob([raw.json],{type:'application/json'}));
+    a.download = basename+'.json'; bar.appendChild(a);
+  }
+
+  const txtBtn = document.createElement('button'); txtBtn.className='export-btn';
+  txtBtn.textContent = 'Checklist (.txt)';
+  txtBtn.onclick = () => exportChecklist(citations);
+  bar.appendChild(txtBtn);
+
+  const printBtn = document.createElement('button'); printBtn.className='export-btn';
+  printBtn.textContent = 'Print'; printBtn.onclick = () => window.print();
+  bar.appendChild(printBtn);
+
+  return bar;
+}
+
+function exportChecklist(citations) {
+  const lines = ['CITATION VERIFICATION CHECKLIST','='.repeat(40),''];
+  const items = (citations||[])
+    .map(c=>({c, t:translateStatus(c)}))
+    .filter(({t})=>t.priority<4)
+    .sort((a,b)=>a.t.priority-b.t.priority);
+  if (!items.length) {
+    lines.push('All citations verified. No action required.');
+  } else {
+    lines.push('ACTION REQUIRED:');
+    items.forEach(({c,t}) => {
+      lines.push('','[ ] ' + c.raw_citation);
+      lines.push('    ' + t.verdict + ' \u2014 ' + t.sub);
+      lines.push('    ' + getActionText(t.cls, c));
+    });
+  }
+  const vf = (citations||[]).filter(c=>translateStatus(c).priority>=4);
+  if (vf.length) {
+    lines.push('','VERIFIED (no action needed):');
+    vf.forEach(c=>lines.push('  \u2713 ' + c.raw_citation));
+  }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([lines.join('\n')],{type:'text/plain'}));
+  a.download = 'citation-checklist.txt'; a.click();
+}
+
+// ── Citation card ─────────────────────────────────────────────────────────────
+
+function buildCaselawCard(c, idx) {
+  const t = translateStatus(c);
+  const qFail   = c.quote_status === 'not_found';
+  const qUnavail = c.quote_status === 'text_unavailable';
+
+  const bbLine = (c.bluebook_citation && c.bluebook_citation !== c.raw_citation)
+    ? `<div class="bluebook-line">Bluebook: ${esc(c.bluebook_citation)}</div>` : '';
+
+  // Brief passage with citation highlighted
+  const passageHtml = c.context
+    ? `<div class="passage-block">${highlightCite(c.context, c.raw_citation)}</div>` : '';
+
+  // Quote box
+  let quoteHtml = '';
+  if (c.quoted_text) {
+    const qs = c.quote_status||'';
+    const qCls   = qs==='verified'?'ok': qs==='not_found'?'fail':'unavail';
+    const qLabel = qs==='verified'?'Verified in opinion': qs==='not_found'?'NOT FOUND IN OPINION': qs==='text_unavailable'?'Opinion text unavailable': qs;
+    const sim    = c.quote_similarity!=null ? ` \u00b7 ${Math.round(c.quote_similarity*100)}% match` : '';
+    const evLine = c.quote_evidence
+      ? `<div class="quote-box-evidence">${esc(c.quote_evidence)}</div>` : '';
+    quoteHtml = `<div class="quote-box">
+      <div class="quote-box-head">
+        <span class="q-text">\u201c${esc(c.quoted_text.slice(0,90))}${c.quoted_text.length>90?'\u2026':''}\u201d</span>
+        <span class="q-status ${qCls}">${esc(qLabel)}${sim}</span>
+      </div>${evLine}
+    </div>`;
+  }
+
+  // Evidence (translated)
+  const evHtml = c.evidence
+    ? `<div class="evidence-box"><span class="ev-key">Finding</span>${esc(plainEvidence(c.evidence, t.cls))}</div>` : '';
+
+  // Action block
+  const aId = 'act-' + idx;
+  const actionHtml = t.priority < 4 ? `
+    <div>
+      <button class="action-toggle" onclick="toggleAction('${aId}',this)"><span>\u25b8</span> What to do</button>
+      <div class="action-body" id="${aId}">${esc(getActionText(t.cls, c))}</div>
+    </div>` : '';
+
+  // Source
+  const srcHtml = c.source
+    ? `<div class="source-row">Source: ${c.source_url ? `<a href="${esc(c.source_url)}" target="_blank">${esc(c.source)}</a>` : esc(c.source)}</div>` : '';
+
+  // Search attempts
+  let attHtml = '';
+  if (c.search_attempts && c.search_attempts.length) {
+    const rows = c.search_attempts.map(a =>
+      `<tr><td class="${a.success?'att-ok':'att-no'}">${a.success?'\u2713':'\u2717'}</td><td>${esc(a.source)}</td><td>${esc(a.strategy)}</td><td>${esc(a.query)}</td><td>${a.result_count}</td></tr>`
+    ).join('');
+    attHtml = `<button class="att-toggle" onclick="toggleAtt('ca${idx}')">\u25b7 ${c.search_attempts.length} search attempt${c.search_attempts.length>1?'s':''}</button>
+      <table class="att-table" id="att-ca${idx}"><thead><tr><th></th><th>Source</th><th>Strategy</th><th>Query</th><th>#</th></tr></thead><tbody>${rows}</tbody></table>`;
+  }
+
+  const card = document.createElement('div');
+  card.className = `ccard ${t.cls}`;
+  card.innerHTML = `
+    <div class="ccard-header">
+      <div style="flex:1">
+        <div class="ccard-cite">${esc(c.raw_citation)}</div>
+        ${bbLine}
+      </div>
+      <div class="ccard-right">
+        <span class="verdict-badge ${t.cls}">${t.verdict}</span>
+        <span class="conf-num">${c.confidence}/100</span>
+      </div>
+    </div>
+    <div class="ccard-body">
+      <div class="ccard-subtext">${t.sub}</div>
+      ${passageHtml}
+      ${quoteHtml}
+      ${evHtml}
+      ${actionHtml}
+      ${srcHtml}
+      ${attHtml}
+    </div>`;
+  return card;
+}
+
+function plainEvidence(ev, cls) {
+  if (!ev) return '';
+  if (cls === 'flagged' && (ev.includes('wrong case')||ev.includes('misattributed')||ev.includes('attributed to'))) {
+    return ev.replace('The case name appears to be fabricated or misattributed.',
+      'This citation number belongs to a different case. Either the case name or the citation is wrong and must be corrected before filing.');
+  }
+  return ev;
+}
+
+function highlightCite(context, rawCite) {
+  if (!context || !rawCite) return esc(context||'');
+  let idx = context.indexOf(rawCite);
+  if (idx === -1) { idx = context.toLowerCase().indexOf(rawCite.toLowerCase()); }
+  if (idx === -1) return esc(context);
+  return esc(context.slice(0,idx)) + '<mark class="cite-mark">' + esc(context.slice(idx, idx+rawCite.length)) + '</mark>' + esc(context.slice(idx+rawCite.length));
+}
+
+function toggleAction(id, btn) {
+  const body = document.getElementById(id); body.classList.toggle('open');
+  btn.querySelector('span').textContent = body.classList.contains('open') ? '\u25be' : '\u25b8';
+}
+function toggleAtt(id) { document.getElementById('att-'+id).classList.toggle('open'); }
+
+// ── Render corpus ─────────────────────────────────────────────────────────────
+
+function renderCorpusResults(data) {
+  document.getElementById('resultsEmpty').style.display = 'none';
+  const sec = document.getElementById('results-section');
+  sec.innerHTML = '';
+  const rs = data.record_summary||{};
+
+  sec.innerHTML += `<div class="summary-bar">
+    <div class="sum-stat"><div class="sum-num">${rs.total||0}</div><div class="sum-label">Record Cites</div></div>
+    <div class="sum-divider"></div>
+    <div class="sum-stat verified"><div class="sum-num">${rs.verified||0}</div><div class="sum-label">Confirmed</div></div>
+    <div class="sum-divider"></div>
+    <div class="sum-stat flagged"><div class="sum-num">${rs.document_not_found||0}</div><div class="sum-label">Not Found</div></div>
+    <div class="sum-divider"></div>
+    <div class="sum-stat review"><div class="sum-num">${(rs.location_mismatch||0)+(rs.quote_mismatch||0)}</div><div class="sum-label">Mismatch</div></div>
+    <div class="sum-time">${data.processing_seconds||0}s</div>
+  </div>`;
+
+  if (data.corpus_documents && data.corpus_documents.length) {
+    sec.innerHTML += `<div style="font-family:'IBM Plex Mono',monospace;font-size:0.67rem;color:var(--muted);margin-bottom:16px">${data.corpus_documents.length} document${data.corpus_documents.length!==1?'s':''} indexed: ${data.corpus_documents.map(esc).join(' \u00b7 ')}</div>`;
+  }
+
+  if (data.floating_quotes && data.floating_quotes.length) {
+    const fb = document.createElement('div'); fb.className='floating-box';
+    fb.innerHTML = `<strong>${data.floating_quotes.length} unattributed quote${data.floating_quotes.length>1?'s':''} detected</strong> \u2014 quoted text not clearly tied to any record citation.<br>` +
+      data.floating_quotes.map(q => `<div style="margin-top:4px;font-style:italic;font-size:0.76rem">\u201c${esc(q.text.slice(0,80))}${q.text.length>80?'\u2026':''}\u201d</div>`).join('');
+    sec.appendChild(fb);
+  }
+
+  if (data.record_citations && data.record_citations.length) {
+    const ranked = ['Document Not Found','Location Mismatch','Quote Mismatch','Verified'];
+    const sorted = [...data.record_citations].sort((a,b) => ranked.indexOf(a.status)-ranked.indexOf(b.status));
+    const issues   = sorted.filter(rc => rc.status !== 'Verified');
+    const confirmed = sorted.filter(rc => rc.status === 'Verified');
+
+    if (issues.length) {
+      const hdr = document.createElement('div'); hdr.className='section-hdr';
+      hdr.textContent = `Record Citation Issues (${issues.length})`; sec.appendChild(hdr);
+      const list = document.createElement('div'); list.className='results-list';
+      issues.forEach((rc,i) => list.appendChild(buildRecordCard(rc,i)));
+      sec.appendChild(list);
+    }
+    if (confirmed.length) {
+      const tog = document.createElement('div'); tog.className='verified-toggle';
+      tog.innerHTML = `<span id="rvtArrow">\u25b8</span> ${confirmed.length} confirmed record citation${confirmed.length!==1?'s':''}`;
+      tog.onclick = () => {
+        const vl=document.getElementById('rvList'); vl.classList.toggle('open');
+        document.getElementById('rvtArrow').textContent = vl.classList.contains('open')?'\u25be':'\u25b8';
+      };
+      sec.appendChild(tog);
+      const vlist = document.createElement('div'); vlist.className='verified-list'; vlist.id='rvList';
+      confirmed.forEach((rc,i) => vlist.appendChild(buildRecordCard(rc,'rv'+i)));
+      sec.appendChild(vlist);
+    }
+  } else {
+    const empty = document.createElement('div'); empty.style='color:var(--muted);font-size:0.8rem;padding:10px 0';
+    empty.textContent='No record citations found in brief.'; sec.appendChild(empty);
+  }
+
+  if (data.caselaw_report && data.caselaw_report.citations && data.caselaw_report.citations.length) {
+    const hdr = document.createElement('div'); hdr.className='section-hdr'; hdr.textContent='Case-Law Citations'; sec.appendChild(hdr);
+    sec.innerHTML += buildSummaryBar(data.caselaw_report);
+    const list = document.createElement('div'); list.className='results-list';
+    [...data.caselaw_report.citations].sort((a,b)=>translateStatus(a).priority-translateStatus(b).priority)
+      .forEach((c,i)=>list.appendChild(buildCaselawCard(c,'cl'+i)));
+    sec.appendChild(list);
+  }
+
+  sec.style.display = 'block';
+}
+
+function buildRecordCard(rc, idx) {
+  const st  = (rc.status||'').toLowerCase().replace(/ /g,'_');
+  const ok  = rc.status === 'Verified';
+  const cls = ok ? 'verified' : st==='document_not_found' ? 'flagged' : 'mismatch';
+  const badge    = ok ? 'CONFIRMED'  : st==='document_not_found' ? 'NOT FOUND'  : 'MISMATCH';
+  const badgeCls = ok ? 'verified'   : st==='document_not_found' ? 'flagged'    : 'review';
+
+  const ref = [rc.page_ref&&`p.\u202f${rc.page_ref}`, rc.line_ref&&`l.\u202f${rc.line_ref}`, rc.paragraph_ref&&`\u00b6\u202f${rc.paragraph_ref}`].filter(Boolean).join(' ');
+
+  // Plain-language finding
+  let finding = rc.evidence||'';
+  if (st==='document_not_found') {
+    finding = (finding.split('Available documents:')[0]||'Document not found in uploaded corpus.').trim() + ' Upload this document to verify the citation.';
+  }
+
+  const qHtml = rc.quoted_text ? `<div class="quote-box"><div class="quote-box-head">
+    <span class="q-text">\u201c${esc(rc.quoted_text.slice(0,100))}${rc.quoted_text.length>100?'\u2026':''}\u201d</span>
+    <span class="q-status ${(rc.quote_similarity||0)>0.8?'ok':'fail'}">${rc.quote_similarity!=null?Math.round(rc.quote_similarity*100)+'% match':'quoted'}</span>
+  </div></div>` : '';
+
+  const ctxHtml = rc.context
+    ? `<div class="passage-block" style="font-size:0.76rem">${esc(rc.context.slice(0,220))}</div>` : '';
+
+  const card = document.createElement('div');
+  card.className = `rcard ${cls}`;
+  card.innerHTML = `
+    <div class="rcard-header">
+      <div>
+        <div class="rcard-label">${esc(rc.document_label)}${ref?' <span style="font-weight:400;color:var(--muted)">'+esc(ref)+'</span>':''}</div>
+        <div class="rcard-type">${esc(rc.document_type)}</div>
+      </div>
+      <span class="verdict-badge ${badgeCls}">${badge}</span>
+    </div>
+    <div class="rcard-body">
+      ${rc.matched_document?`<div class="source-row">Matched: ${esc(rc.matched_document)}</div>`:''}
+      ${finding?`<div class="evidence-box"><span class="ev-key">Finding</span>${esc(finding)}</div>`:''}
+      ${qHtml}${ctxHtml}
+    </div>`;
+  return card;
+}
+
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+
+// Load server config
+(async () => {
+  try {
+    const cfg = await fetch('/config').then(r=>r.json());
+    ['textClToken','fileClToken'].forEach(id => {
+      const el = document.getElementById(id); if (!el) return;
+      if (cfg.cl_token) { el.value=cfg.cl_token; el.placeholder='Loaded from environment'; }
+      else { el.placeholder='Optional \u2014 improves quote verification'; }
+    });
+    ['textVerifyQuotes','fileVerifyQuotes'].forEach(id => {
+      const el=document.getElementById(id); if(el) el.checked = cfg.verify_quotes_default!==false;
+    });
+    document.getElementById('hDot').style.background = '#22c55e';
+  } catch(e) {
+    ['textClToken','fileClToken'].forEach(id=>{const el=document.getElementById(id);if(el)el.placeholder='Optional';});
+  }
+})();
+</script>
+</body>
+</html>

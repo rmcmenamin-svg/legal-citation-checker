@@ -25,10 +25,14 @@ QUOTE_MATCH_GOOD = 0.90
 
 def _normalize_for_comparison(text: str) -> str:
     """Normalize text for fuzzy comparison: collapse whitespace, normalize quotes."""
+    import re as _re
     # Normalize smart quotes to plain quotes
     text = text.replace("\u201c", '"').replace("\u201d", '"')
     text = text.replace("\u2018", "'").replace("\u2019", "'")
     text = text.replace("\u2014", "--").replace("\u2013", "-")
+    # Strip California line-number artifacts: newline followed by 1-2 digits
+    # e.g. "be\n11 notified" → "be notified"
+    text = _re.sub(r"\n\s*\d{1,2}\s+", " ", text)
     return " ".join(text.split())
 
 
@@ -53,6 +57,13 @@ def _fuzzy_quote_match(
     # Exact substring check first
     if needle_norm in haystack_norm:
         return (True, 1.0, needle)
+
+    # For short quotes, also try after stripping trailing/leading punctuation.
+    # "be notified." won't exact-match '"be notified,"' but core words will.
+    import re as _re2
+    needle_core = _re2.sub(r'^["\'\s]+|["\'\s.,;:!?]+$', '', needle_norm)
+    if needle_core and len(needle_core) >= 5 and needle_core in haystack_norm:
+        return (True, 0.95, needle)
 
     # Sliding window fuzzy match
     needle_len = len(needle_norm)

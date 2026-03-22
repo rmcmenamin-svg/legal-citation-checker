@@ -1,0 +1,70 @@
+{
+  "topic": "Quote Verification Test",
+  "text": "MEMORANDUM\n\nTO: Supervising Partner\nFROM: Associate\nDATE: March 18, 2026\nRE: Quote Verification Test Memo\n\nI. EMPLOYMENT LAW — VERBATIM QUOTES\n\nTitle VII's reach was settled in Bostock v. Clayton County, 140 S. Ct. 1731 (2020). The Court held that \"an employer who fires an individual merely for being gay or transgender violates Title VII.\" 140 S. Ct. at 1741. This holding rests on a straightforward textual argument: \"it is impossible to discriminate against a person for being homosexual or transgender without discriminating against that individual based on sex.\" Id. at 1747.\n\nThe burden-shifting framework was established in McDonnell Douglas Corp. v. Green, 411 U.S. 792 (1973). Under the framework, \"the employee must carry the initial burden under the statute of establishing a prima facie case of racial discrimination\" before the burden shifts to the employer to articulate a legitimate reason. Id. at 802. Some courts have misread McDonnell Douglas as requiring that discrimination be the sole cause of termination, but that reading was foreclosed by Desert Palace, Inc. v. Costa, 539 U.S. 90 (2003), which the Sixth Circuit recently misapplied. See Kowalski v. Triton Financial Services, Inc., 34 F.4th 892, 899 (6th Cir. 2023) (\"the mixed-motive standard does not require proof that discrimination was the but-for cause of termination, only that it was a motivating factor\").\n\nII. FOURTH AMENDMENT — VERBATIM AND FABRICATED QUOTES\n\nThe foundational stop-and-frisk standard comes from Terry v. Ohio, 392 U.S. 1 (1968). The Court held that in justifying an investigatory stop, \"the police officer must be able to point to specific and articulable facts which, taken together with rational inferences from those facts, reasonably warrant that intrusion.\" Id. at 21. Separately, the Court stated that an officer may stop and frisk \"where a police officer observes unusual conduct which leads him reasonably to conclude in light of his experience that criminal activity may be afoot.\" Id. at 30.\n\nThe government will argue that the extended GPS surveillance was authorized under good-faith principles. But cf. United States v. Hargrove, 89 F.4th 1124, 1131 (10th Cir. 2025) (\"Caballes speaks to the permissible scope of a stop already lawfully initiated; it does not supply independent authority for covert physical intrusion prior to any confrontation with the subject.\").",
+  "ground_truth": [
+    {
+      "citation": "140 S. Ct. 1731",
+      "case_name": "Bostock v. Clayton County",
+      "status": "REAL",
+      "quote": "an employer who fires an individual merely for being gay or transgender violates Title VII.",
+      "quote_status": "REAL_QUOTE",
+      "quote_note": "Verbatim from Bostock majority opinion (CL opinion 4541344)"
+    },
+    {
+      "citation": "140 S. Ct. 1731",
+      "case_name": "Bostock v. Clayton County",
+      "status": "REAL",
+      "quote": "it is impossible to discriminate against a person for being homosexual or transgender without discriminating against that individual based on sex.",
+      "quote_status": "REAL_QUOTE",
+      "quote_note": "Verbatim from Bostock majority opinion"
+    },
+    {
+      "citation": "411 U.S. 792",
+      "case_name": "McDonnell Douglas Corp. v. Green",
+      "status": "REAL",
+      "quote": "the employee must carry the initial burden under the statute of establishing a prima facie case of racial discrimination",
+      "quote_status": "REAL_QUOTE",
+      "quote_note": "Standard McDonnell Douglas language — verbatim from opinion"
+    },
+    {
+      "citation": "539 U.S. 90",
+      "case_name": "Desert Palace, Inc. v. Costa",
+      "status": "REAL",
+      "quote": null,
+      "quote_status": "NO_QUOTE",
+      "quote_note": "No quote attributed in memo"
+    },
+    {
+      "citation": "34 F.4th 892",
+      "case_name": "Kowalski v. Triton Financial Services, Inc.",
+      "status": "FABRICATED",
+      "quote": "the mixed-motive standard does not require proof that discrimination was the but-for cause of termination, only that it was a motivating factor",
+      "quote_status": "FAKE_CASE",
+      "quote_note": "Whole case is fabricated — citation detection should flag this"
+    },
+    {
+      "citation": "392 U.S. 1",
+      "case_name": "Terry v. Ohio",
+      "status": "REAL",
+      "quote": "the police officer must be able to point to specific and articulable facts which, taken together with rational inferences from those facts, reasonably warrant that intrusion.",
+      "quote_status": "REAL_QUOTE",
+      "quote_note": "Verbatim from Terry majority opinion (CL opinion 9423752)"
+    },
+    {
+      "citation": "392 U.S. 1",
+      "case_name": "Terry v. Ohio",
+      "status": "REAL",
+      "quote": "where a police officer observes unusual conduct which leads him reasonably to conclude in light of his experience that criminal activity may be afoot",
+      "quote_status": "REAL_QUOTE",
+      "quote_note": "Verbatim from Terry majority opinion"
+    },
+    {
+      "citation": "89 F.4th 1124",
+      "case_name": "United States v. Hargrove",
+      "status": "FABRICATED",
+      "quote": "Caballes speaks to the permissible scope of a stop already lawfully initiated; it does not supply independent authority for covert physical intrusion prior to any confrontation with the subject.",
+      "quote_status": "FAKE_CASE",
+      "quote_note": "Whole case is fabricated"
+    }
+  ]
+}

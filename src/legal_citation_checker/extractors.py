@@ -79,6 +79,20 @@ def extract_pdf_text(path: Path) -> DocumentText:
     return _extract_pdf_text_pdfplumber(path, pdfplumber)
 
 
+def _try_ocr_page(page: Any) -> str:
+    """Attempt OCR on a pdfplumber page. Returns empty string if unavailable or fails."""
+    try:
+        import pytesseract  # type: ignore
+        from PIL import Image  # type: ignore  # noqa: F401
+    except ImportError:
+        return ""
+    try:
+        img = page.to_image(resolution=200).original
+        return pytesseract.image_to_string(img).strip()
+    except Exception:
+        return ""
+
+
 def _extract_pdf_text_pdfplumber(path: Path, pdfplumber: Any) -> DocumentText:
     paragraphs: List[ParagraphSpan] = []
     chunks: List[str] = []
@@ -87,6 +101,12 @@ def _extract_pdf_text_pdfplumber(path: Path, pdfplumber: Any) -> DocumentText:
     with pdfplumber.open(str(path)) as pdf:
         for page_num, page in enumerate(pdf.pages, start=1):
             text = (page.extract_text() or "").strip()
+
+            if len(text) < 100:
+                ocr_text = _try_ocr_page(page)
+                if len(ocr_text) > len(text):
+                    text = ocr_text
+
             if not text:
                 continue
 
@@ -129,6 +149,47 @@ def _extract_pdf_text_pypdf2(path: Path, PdfReader: Any) -> DocumentText:
         )
 
     return DocumentText(full_text="".join(chunks), paragraphs=paragraphs)
+
+
+# Regex for CACI citations: "CACI No. 302", "CACI 1620", "CACI Nos. 100, 200"
+_CACI_PATTERN = re.compile(
+    r"\bCACI\s+(?:No(?:s)?\.?\s+)?(\d{3,4}(?:\s*[,\-–]\s*\d{3,4})*)",
+    re.IGNORECASE,
+)
+
+
+def _extract_caci_citations(
+    document_text: DocumentText,
+    normalizer: CitationNormalizer,
+    existing: List[ExtractedCitation],
+) -> None:
+    """Extract CACI citations not handled by eyecite."""
+    existing_spans = {(c.span[0], c.span[1]) for c in existing if c.span}
+    text = document_text.full_text
+    for m in _CACI_PATTERN.finditer(text):
+        span = (m.start(), m.end())
+        if span in existing_spans:
+            continue
+        raw = m.group(0).strip()
+        caci_num = m.group(1).strip().split(",")[0].strip().split("-")[0].strip().split("–")[0].strip()
+        metadata: Dict[str, Any] = {"caci_number": caci_num}
+        parsed = ParsedCitation()
+        normalized, _ = normalizer.normalize(raw, metadata)
+        paragraph_index = _paragraph_for_span(document_text.paragraphs, span)
+        context = _citation_context(document_text, span)
+        existing.append(ExtractedCitation(
+            index=len(existing) + 1,
+            raw_citation=raw,
+            normalized_citation=normalized or raw,
+            citation_type="CACICitation",
+            context=context,
+            paragraph_index=paragraph_index,
+            metadata=metadata,
+            bluebook_normalized=False,
+            parsed=parsed,
+            span=span,
+        ))
+        existing_spans.add(span)
 
 
 def extract_citations(
@@ -188,6 +249,9 @@ def extract_citations(
     _fallback_extract_missed_citations(
         document_text, normalizer, citations, verbose,
     )
+
+    # Extract CACI citations (California Civil Jury Instructions)
+    _extract_caci_citations(document_text, normalizer, citations)
 
     return citations
 

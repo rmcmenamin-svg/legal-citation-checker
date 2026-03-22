@@ -1,0 +1,49 @@
+{
+  "topic": "Fourth Amendment / Criminal Procedure",
+  "text": "MEMORANDUM\n\nTO:      Lead Defense Counsel\nFROM:    Associate\nDATE:    March 18, 2026\nRE:      Motion to Suppress \u2014 United States v. Delgado (No. 25-CR-00341, D. Colo.)\n\nI. ISSUE PRESENTED\n\nWhether the warrantless installation of a GPS tracking device on Defendant Ramon Delgado's vehicle, combined with the subsequent extraction of 90 days of historical cell-site location information (\"CSLI\") from his carrier, violated the Fourth Amendment such that all derivative evidence should be suppressed.\n\nII. SHORT ANSWER\n\nStrong suppression arguments exist on both prongs. The GPS installation is governed directly by United States v. Jones, 565 U.S. 400 (2012), which held that attachment of a tracking device to a vehicle constitutes a Fourth Amendment search. The CSLI extraction implicates Carpenter v. United States, 138 S. Ct. 2206 (2018), which categorically requires a warrant for historical CSLI exceeding seven days. Because both investigative steps were conducted without a warrant, and no recognized exception applies, we should move to suppress.\n\nIII. ANALYSIS\n\nA. GPS Tracking \u2014 Jones and Its Progeny\n\nIn Jones, the Supreme Court unanimously held that the government's physical attachment of a GPS device to the defendant's vehicle and use of that device to monitor his movements constituted a \"search\" within the meaning of the Fourth Amendment. 565 U.S. at 404\u201305. Although Jones was decided on trespass grounds, five Justices also indicated that prolonged surveillance implicates reasonable expectations of privacy. Id. at 413\u201318 (Alito, J., concurring). Here, agents attached the device without a warrant while Delgado's car was parked in a private driveway \u2014 a location outside the public-way rationale the government will invoke.\n\nDogs and the Automobile Exception \u2014 The government may argue that a positive alert by a narcotics dog provided probable cause justifying warrantless placement. But Illinois v. Caballes, 543 U.S. 405 (2005), addressed a dog sniff during a lawful traffic stop \u2014 a very different posture from covert pre-seizure device installation. Caballes does not authorize warrantless GPS attachment, and courts have consistently refused to extend it to that context. See United States v. Hargrove, 89 F.4th 1124, 1131 (10th Cir. 2025) (\"Caballes speaks to the permissible scope of a stop already lawfully initiated; it does not supply independent authority for covert physical intrusion prior to any confrontation with the subject.\").\n\nB. CSLI \u2014 Carpenter and the 90-Day Extraction\n\nIn Carpenter, the Court held that the government must obtain a warrant supported by probable cause before acquiring more than seven days of a suspect's historical CSLI. 138 S. Ct. at 2217\u201320. The 90-day extraction here falls squarely within Carpenter's core holding. The government obtained only a \u00a7 2703(d) court order \u2014 a lower standard than probable cause \u2014 making the CSLI evidence presumptively suppressible.\n\nAgents also relied on a Terry stop rationale to justify brief continued surveillance prior to arrest. Terry v. Ohio, 392 U.S. 1, 30 (1968), permits brief investigative stops based on reasonable articulable suspicion, but it has never been extended to authorize days-long electronic surveillance. The Tenth Circuit recently reaffirmed that Terry cannot bootstrap a warrant requirement. See United States v. Pemberton, 2025 WL 9876543, at *9 (10th Cir. Nov. 3, 2025) (\"Terry's stop-and-frisk exception is cabined to the brief and necessarily swift investigative encounter; it cannot serve as a license for extended surveillance that the Carpenter Court specifically held requires a warrant.\").\n\nC. Good-Faith Exception\n\nThe government will invoke the good-faith exception under United States v. Leon, 468 U.S. 897 (1984). That argument fails: Leon does not apply when officers act without any warrant \u2014 its protection extends only to officers who reasonably relied on a defective warrant issued by a neutral magistrate. See Moorefield v. United States, 2024 WL 3340021, at *4 (D. Colo. July 8, 2024) (\"Leon's good-faith exception is not a blank check for warrantless investigative techniques, however well-intentioned; where no warrant was sought, the exception has no purchase.\").\n\nIV. RECOMMENDATION\n\nFile a suppression motion targeting both the GPS evidence and the CSLI extraction. The Jones and Carpenter holdings are directly on point. The good-faith exception will not save the government here. Suppression of both evidentiary streams would likely cripple the prosecution's case and create significant plea leverage.\n\n---\n\nAPPENDIX \u2014 CITATION STATUS TABLE\n\n| Citation | Case Name | Status | Note |\n|---|---|---|---|\n| 565 U.S. 400 | United States v. Jones | REAL | |\n| 138 S. Ct. 2206 | Carpenter v. United States | REAL | |\n| 543 U.S. 405 | Illinois v. Caballes | REAL | |\n| 392 U.S. 1 | Terry v. Ohio | REAL | |\n| 468 U.S. 897 | United States v. Leon | REAL | |\n| 89 F.4th 1124 | United States v. Hargrove | FABRICATED | Fake F.4th citation in Tenth Circuit; fabricated quote attributed to nonexistent case |\n| 2025 WL 9876543 | United States v. Pemberton | FABRICATED | Sequential/round WL number (9876543); case and quoted language are invented |\n| 2024 WL 3340021 | Moorefield v. United States | FABRICATED | WL number fabricated; district court citation and quoted language are invented |\n",
+  "ground_truth": [
+    {
+      "citation": "565 U.S. 400",
+      "case_name": "United States v. Jones",
+      "status": "REAL"
+    },
+    {
+      "citation": "138 S. Ct. 2206",
+      "case_name": "Carpenter v. United States",
+      "status": "REAL"
+    },
+    {
+      "citation": "543 U.S. 405",
+      "case_name": "Illinois v. Caballes",
+      "status": "REAL"
+    },
+    {
+      "citation": "392 U.S. 1",
+      "case_name": "Terry v. Ohio",
+      "status": "REAL"
+    },
+    {
+      "citation": "468 U.S. 897",
+      "case_name": "United States v. Leon",
+      "status": "REAL"
+    },
+    {
+      "citation": "89 F.4th 1124",
+      "case_name": "United States v. Hargrove",
+      "status": "FABRICATED",
+      "note": "Fake F.4th citation; no such Tenth Circuit case exists; fabricated quote"
+    },
+    {
+      "citation": "2025 WL 9876543",
+      "case_name": "United States v. Pemberton",
+      "status": "FABRICATED",
+      "note": "Round/sequential WL number pattern; Tenth Circuit case and internal quote are invented"
+    },
+    {
+      "citation": "2024 WL 3340021",
+      "case_name": "Moorefield v. United States",
+      "status": "FABRICATED",
+      "note": "WL number fabricated; D. Colo. case citation and quoted language do not exist"
+    }
+  ]
+}

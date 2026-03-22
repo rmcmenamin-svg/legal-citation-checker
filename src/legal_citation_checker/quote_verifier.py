@@ -68,6 +68,10 @@ def _normalize_for_comparison(text: str) -> str:
     text = text.replace("\u201c", '"').replace("\u201d", '"')
     text = text.replace("\u2018", "'").replace("\u2019", "'")
     text = text.replace("\u2014", "--").replace("\u2013", "-")
+    # Strip California line-number artifacts: newline followed by 1-2 digits
+    # e.g. "be\n11 notified" → "be notified"
+    import re as _re
+    text = _re.sub(r"\n\s*\d{1,2}\s+", " ", text)
     return " ".join(text.split())
 
 
@@ -156,6 +160,8 @@ class QuoteVerifier:
         quote_text: str,
         source_url: Optional[str],
         citation_text: str = "",
+        case_name: str = "",
+        court: str = "",
     ) -> "QuoteVerificationResult":
         """Verify a quoted passage against the opinion text.
 
@@ -181,14 +187,16 @@ class QuoteVerifier:
                 evidence="No source URL available for quote verification.",
             )
 
-        # Fetch opinion text
+        # Fetch opinion text — try CL first, then web search fallback
         opinion_text = self._get_opinion_text(source_url)
+        if not opinion_text:
+            opinion_text = self._get_opinion_text_via_web(citation_text, case_name, court)
         if not opinion_text:
             return QuoteVerificationResult(
                 status="text_unavailable",
                 confidence=0,
                 evidence=(
-                    "Could not retrieve opinion text from CourtListener. "
+                    "Could not retrieve opinion text from CourtListener or web search. "
                     "Quote verification requires access to the full opinion."
                 ),
             )
@@ -223,30 +231,56 @@ class QuoteVerifier:
     def _get_opinion_text(self, source_url: str) -> Optional[str]:
         """Fetch the full opinion text from CourtListener.
 
+        CL search result URLs use /opinion/CLUSTER_ID/ (cluster URLs).
+        We must resolve the cluster to actual opinion IDs, then fetch text.
+
         Tries in order:
-        1. API endpoint with auth token (if available)
-        2. Public HTML opinion page
+        1. Resolve cluster → opinion IDs → fetch via API (needs token)
+        2. Public HTML opinion page (often JavaScript-rendered, limited)
         """
-        opinion_id = extract_opinion_id(source_url)
-        if not opinion_id:
+        cluster_id = extract_opinion_id(source_url)  # regex matches both /opinion/ and /opinions/
+        if not cluster_id:
             return None
 
-        # Check cache
-        if opinion_id in self._opinion_cache:
-            return self._opinion_cache[opinion_id]
+        cache_key = f"cluster:{cluster_id}"
+        if cache_key in self._opinion_cache:
+            return self._opinion_cache[cache_key]
 
         text = None
 
-        # Strategy 1: CourtListener API (needs token)
-        if self._api_token:
-            text = self._fetch_via_api(opinion_id)
+        # Strategy 1: Resolve cluster → opinion IDs, fetch each opinion's text
+        if self._api_token and self._session:
+            text = self._fetch_via_cluster(cluster_id)
 
-        # Strategy 2: Public HTML page
+        # Strategy 2: Public HTML page (fallback — often empty on JS-rendered pages)
         if not text:
             text = self._fetch_via_html(source_url)
 
-        self._opinion_cache[opinion_id] = text
+        self._opinion_cache[cache_key] = text
         return text
+
+    def _fetch_via_cluster(self, cluster_id: str) -> Optional[str]:
+        """Resolve a cluster ID to sub-opinions and fetch text from the first available."""
+        cluster_url = f"https://www.courtlistener.com/api/rest/v4/clusters/{cluster_id}/"
+        headers = {"Authorization": f"Token {self._api_token}"}
+        try:
+            resp = self._session.get(cluster_url, headers=headers, timeout=self._timeout)
+            if resp.status_code >= 400:
+                return None
+            data = resp.json()
+            sub_opinions = data.get("sub_opinions") or []
+            for opinion_url in sub_opinions:
+                # Extract opinion ID from URL like .../opinions/9889182/
+                m = re.search(r"/opinions?/(\d+)/", opinion_url)
+                if not m:
+                    continue
+                opinion_id = m.group(1)
+                text = self._fetch_via_api(opinion_id)
+                if text:
+                    return text
+        except Exception as exc:
+            logger.debug("Cluster fetch failed for %s: %s", cluster_id, exc)
+        return None
 
     def _fetch_via_api(self, opinion_id: str) -> Optional[str]:
         """Fetch opinion text via the CourtListener REST API."""
@@ -340,6 +374,55 @@ class QuoteVerifier:
             # Only use if we got substantial text
             if len(text) > 500:
                 return text
+
+        return None
+
+    def _get_opinion_text_via_web(
+        self, citation_text: str, case_name: str = "", court: str = ""
+    ) -> Optional[str]:
+        """Search Brave for the case using multiple query strategies and fetch opinion text."""
+        import os
+        api_key = os.environ.get("BRAVE_API_KEY")
+        if not api_key or not self._session:
+            return None
+
+        # Build 2-3 query variations using loose terms (no exact phrase quoting
+        # on case names — abbreviations like "Hosp." "Corp." vary across sources).
+        queries: List[str] = []
+        # Strip entity suffixes and punctuation to get bare party tokens
+        _noise = re.compile(r"\b(inc|corp|co|llc|llp|ltd|lp|hosp|indus|mfg|assoc|ass'n|dep't|dept)\b\.?", re.IGNORECASE)
+        bare_name = _noise.sub("", case_name).replace("v.", "").replace(",", "").strip() if case_name else ""
+        bare_name = " ".join(bare_name.split())  # collapse whitespace
+
+        if bare_name and court:
+            queries.append(f'{bare_name} AND {court} AND opinion')
+        if bare_name and citation_text:
+            queries.append(f'{bare_name} AND {citation_text}')
+        if citation_text:
+            queries.append(f'"{citation_text}" AND opinion text')
+
+        preferred_domains = ("courtlistener.com", "scholar.google", "justia.com", "casetext.com", "law.justia.com", "leagle.com")
+
+        for query in queries:
+            try:
+                resp = self._session.get(
+                    "https://api.search.brave.com/res/v1/web/search",
+                    params={"q": query, "count": 5},
+                    headers={"X-Subscription-Token": api_key, "Accept": "application/json"},
+                    timeout=self._timeout,
+                )
+                if resp.status_code != 200:
+                    continue
+                results = resp.json().get("web", {}).get("results", [])
+                for r in results:
+                    url = r.get("url", "")
+                    if any(d in url for d in preferred_domains):
+                        text = self._fetch_via_html(url)
+                        if text and len(text) > 200:
+                            logger.debug("Quote web fallback found opinion via: %s", url)
+                            return text
+            except Exception as exc:
+                logger.debug("Brave quote search failed for query %r: %s", query, exc)
 
         return None
 

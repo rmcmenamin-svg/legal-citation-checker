@@ -43,14 +43,24 @@ class CitationVerifier:
                 If all network errors → Needs Review.
     """
 
-    def __init__(self, session: Any, request_timeout: float = 8.0) -> None:
+    def __init__(
+        self,
+        session: Any,
+        request_timeout: float = 8.0,
+        api_token: Optional[str] = None,
+    ) -> None:
         self._session = session
         self.request_timeout = request_timeout
+        self._api_token = api_token or None
 
     def verify(self, citation: ExtractedCitation) -> VerificationDecision:
         """Run the full tiered verification pipeline for a citation."""
         attempts: List[SearchAttempt] = []
         p = citation.parsed
+
+        # CACI: California Civil Jury Instructions — verify by number range
+        if citation.citation_type == "CACICitation":
+            return self._verify_caci(citation)
 
         # Detect vendor-specific citations (WL/Lexis) — these can't be
         # verified by citation number, but we CAN verify the underlying case
@@ -66,68 +76,111 @@ class CitationVerifier:
             if decision is not None:
                 return decision
 
-        # ── Tier 2: Party name search (fuzzy match on results) ──────────
-        decision = self._tier2_party_name_search(citation, attempts)
+        # ── Tier 1b: uslaw.link (federal citation resolver) ─────────────
+        decision = self._tier1b_uslaw_link(citation, attempts)
         if decision is not None:
+            return decision
+
+        # For Tiers 2-4b: return immediately on Verified; save Needs Review
+        # as fallback so Tier 5 (Westlaw/Lexis) still gets a chance to reach
+        # a definitive conclusion.
+        unconfirmed_fallback: Optional[VerificationDecision] = None
+
+        def _handle(d: Optional[VerificationDecision], vendor_confidence: int, vendor_source: str) -> Optional[VerificationDecision]:
+            """Return decision if Verified, else save as fallback and return None."""
+            nonlocal unconfirmed_fallback
+            if d is None:
+                return None
             if is_vendor_cite:
-                # Downgrade confidence slightly — we verified the case exists
-                # but can't confirm the exact WL/Lexis number.
-                decision.status = "Verified (case exists)"
-                decision.confidence = min(decision.confidence, 80)
-                decision.evidence = (
-                    f"Case verified via party name search. "
+                d.status = "Verified (case exists)"
+                d.confidence = min(d.confidence, vendor_confidence)
+                d.evidence = (
+                    f"Case verified via {vendor_source}. "
                     f"The exact {'WL' if _WESTLAW_PATTERN.match(norm) else 'LEXIS'} "
                     f"citation number could not be independently confirmed. "
-                    f"Original: {decision.evidence}"
+                    f"Original: {d.evidence}"
                 )
-            return decision
+            if d.status.startswith("Verified") and d.confidence >= 75:
+                return d
+            # Low-confidence or non-Verified: save as fallback, let Tier 5 try
+            if unconfirmed_fallback is None:
+                unconfirmed_fallback = d
+            return None
+
+        # ── Tier 2: Party name search (fuzzy match on results) ──────────
+        result = _handle(self._tier2_party_name_search(citation, attempts), 80, "party name search")
+        if result is not None:
+            return result
 
         # ── Tier 2b: CourtListener docket search (type=d) ────────────
-        decision = self._tier2b_docket_search(citation, attempts)
-        if decision is not None:
-            if is_vendor_cite:
-                decision.status = "Verified (case exists)"
-                decision.confidence = min(decision.confidence, 75)
-                decision.evidence = (
-                    f"Case verified via docket search. "
-                    f"The exact {'WL' if _WESTLAW_PATTERN.match(norm) else 'LEXIS'} "
-                    f"citation number could not be independently confirmed. "
-                    f"Original: {decision.evidence}"
-                )
-            return decision
+        result = _handle(self._tier2b_docket_search(citation, attempts), 75, "docket search")
+        if result is not None:
+            return result
 
         # ── Tier 3: Google Scholar ──────────────────────────────────────
-        decision = self._tier3_google_scholar(citation, attempts)
+        result = _handle(self._tier3_google_scholar(citation, attempts), 75, "Google Scholar")
+        if result is not None:
+            return result
+
+        # ── Tier 4: Brave Search API ────────────────────────────────────
+        result = _handle(self._tier4_brave_search(citation, attempts), 75, "Brave Search")
+        if result is not None:
+            return result
+
+        # ── Tier 4b: Web docket search ──────────────────────────────────
+        result = _handle(self._tier4_web_docket_search(citation, attempts), 70, "web search")
+        if result is not None:
+            return result
+
+        # ── Tier 5: Westlaw/Lexis escalation ───────────────────────────
+        # Fires when all other tiers couldn't produce a Verified decision.
+        decision = self._tier5_legal_research(citation, attempts)
         if decision is not None:
-            if is_vendor_cite:
-                decision.status = "Verified (case exists)"
-                decision.confidence = min(decision.confidence, 75)
-                decision.evidence = (
-                    f"Case verified via Google Scholar. "
-                    f"The exact {'WL' if _WESTLAW_PATTERN.match(norm) else 'LEXIS'} "
-                    f"citation number could not be independently confirmed. "
-                    f"Original: {decision.evidence}"
-                )
             return decision
 
-        # ── Tier 4: Web docket search ───────────────────────────────────
-        decision = self._tier4_web_docket_search(citation, attempts)
-        if decision is not None:
-            if is_vendor_cite:
-                decision.status = "Verified (case exists)"
-                decision.confidence = min(decision.confidence, 70)
-                decision.evidence = (
-                    f"Case verified via web search. "
-                    f"The exact {'WL' if _WESTLAW_PATTERN.match(norm) else 'LEXIS'} "
-                    f"citation number could not be independently confirmed. "
-                    f"Original: {decision.evidence}"
+        # If Tier 5 was skipped/errored, consider returning the best unconfirmed
+        # result we saved rather than going straight to Hallucination.
+        if unconfirmed_fallback is not None:
+            # Never return a "Verified" status from fallback — all authoritative
+            # tiers failed to confirm this citation.  Downgrade to Needs Review.
+            if unconfirmed_fallback.status.startswith("Verified"):
+                unconfirmed_fallback.status = "Needs Review"
+                unconfirmed_fallback.confidence = min(unconfirmed_fallback.confidence, 50)
+                unconfirmed_fallback.evidence = (
+                    "No authoritative source confirmed this citation. "
+                    "Best candidate found but not verified. "
+                    + unconfirmed_fallback.evidence
                 )
-            return decision
+            # If the fallback is very weak (low-confidence party-name-only match
+            # with no triplet anchor) AND many strategies already failed, the
+            # fallback is noise — a common name found in an unrelated case.
+            # In this situation "Potential Hallucination" is more accurate than
+            # "Needs Review", which implies there is real evidence the case exists.
+            real_attempts = [a for a in attempts if a.details != "skipped"]
+            if unconfirmed_fallback.confidence <= 55 and len(real_attempts) >= 10:
+                # Fall through to the Potential Hallucination verdict below.
+                pass
+            else:
+                return unconfirmed_fallback
 
         # ── Final: vendor citation or hallucination ─────────────────────
         if is_vendor_cite:
-            # Vendor citations that couldn't be verified via party names
+            # Vendor citations that couldn't be verified via party names.
+            # If we tried enough strategies and found nothing, treat as hallucination.
             vendor = "WL" if _WESTLAW_PATTERN.match(norm) else "LEXIS"
+            real_attempts_v = [a for a in attempts if a.details != "skipped"]
+            if len(real_attempts_v) >= 6:
+                confidence = _hallucination_confidence(len(attempts))
+                return VerificationDecision(
+                    status="Potential Hallucination",
+                    confidence=confidence,
+                    evidence=f"{vendor} citation: no matching case found after "
+                             f"{len(real_attempts_v)} search strategies. "
+                             f"Party name search on CourtListener, Google Scholar, "
+                             f"and web search all returned no match. "
+                             f"Citation appears fabricated.",
+                    search_attempts=attempts,
+                )
             return VerificationDecision(
                 status="Needs Review",
                 confidence=0,
@@ -171,6 +224,36 @@ class CitationVerifier:
             search_attempts=attempts,
         )
 
+    # ─── CACI Verification ───────────────────────────────────────────────
+
+    def _verify_caci(self, citation: ExtractedCitation) -> VerificationDecision:
+        """Verify CACI citation by checking number against valid ranges.
+
+        Judicial Council publishes CACI Nos. 100–5099.
+        """
+        caci_num_str = str(citation.metadata.get("caci_number") or "").strip()
+        try:
+            caci_num = int(caci_num_str)
+        except (ValueError, TypeError):
+            return VerificationDecision(
+                status="Needs Review",
+                confidence=0,
+                evidence=f"Could not parse CACI number: {caci_num_str!r}",
+            )
+
+        if 100 <= caci_num <= 5099:
+            return VerificationDecision(
+                status="Verified (CACI)",
+                confidence=95,
+                source="Judicial Council of California",
+                evidence=f"CACI No. {caci_num} is within the valid published range (100–5099).",
+            )
+        return VerificationDecision(
+            status="Potential Hallucination",
+            confidence=90,
+            evidence=f"CACI No. {caci_num} is outside the valid published range (100–5099).",
+        )
+
     # ─── Tier 1: Citation Number Lookup ─────────────────────────────────
 
     def _tier1_citation_lookup(
@@ -208,6 +291,25 @@ class CitationVerifier:
             if success:
                 return self._verified_decision(
                     "citation_field", match_url or url, 95, attempts
+                )
+
+            # Citation found in CL but belongs to a completely different case.
+            # Stop here — do NOT let Brave/web search verify citation numbers
+            # alone and return "Verified" for a misattributed citation.
+            actual_name = _citation_found_wrong_case(citation, data, base)
+            if actual_name:
+                meta_name = citation.parsed.case_name or case_name_from_metadata(citation.metadata)
+                confidence = _hallucination_confidence(len(attempts))
+                return VerificationDecision(
+                    status="Potential Hallucination",
+                    confidence=confidence,
+                    evidence=(
+                        f"Citation {base} exists in CourtListener but is attributed "
+                        f"to '{meta_name}' — the actual case at this citation is "
+                        f"'{actual_name}'. The case name appears to be fabricated or "
+                        f"misattributed."
+                    ),
+                    search_attempts=attempts,
                 )
 
         # Strategy 2: quoted citation in free-text q=
@@ -600,6 +702,11 @@ class CitationVerifier:
                         (overlap_ratio >= 0.5 and overlap_count >= 2) or
                         overlap_ratio >= 0.8
                     )
+                    # Single-token matches without a confirmable citation triplet are
+                    # too ambiguous — common names (Barton, Smith) appear in many cases.
+                    # Require >= 2 unique tokens OR a triplet to anchor the match.
+                    if strong_token_match and overlap_count < 2 and not target_triplet:
+                        strong_token_match = False
                     if strong_token_match and year_ok:
                         if target_triplet:
                             for cite_str in result_cites:
@@ -611,13 +718,37 @@ class CitationVerifier:
                         if result_cites and target_triplet:
                             # Case name matches but citation doesn't — likely wrong cite
                             return None  # skip; will be caught as mismatch below
+                        # Name matches but no citation data to confirm the number.
+                        # Return lower confidence — name-only, unconfirmed.
+                        if target_triplet and not result_cites:
+                            return (60, result_url, f"token match ({overlap_count} tokens) — citation number unconfirmed")
+                        # No triplet (e.g. WL citation): can't confirm the citation number
+                        # via CourtListener. Cap at 60% to trigger Tier 5 escalation.
+                        if not target_triplet:
+                            return (60, result_url, f"token match ({overlap_count} tokens, {overlap_ratio:.0%}) — WL/vendor number unconfirmed")
                         return (85, result_url, f"token match ({overlap_count} tokens, {overlap_ratio:.0%}) + year")
 
                 # Method B: Substring fallback for cases where only party names are available
                 if plaintiff and defendant:
                     name_lower = result_name.lower()
-                    has_plaintiff = plaintiff.lower() in name_lower
-                    has_defendant = defendant.lower() in name_lower
+                    p_lower = plaintiff.lower()
+                    d_lower = defendant.lower()
+                    has_plaintiff = p_lower in name_lower
+                    has_defendant = d_lower in name_lower
+
+                    # Symmetric names (e.g. "Barton v. Barton"): a single occurrence
+                    # in the result name could be any case involving that party.
+                    # Split on "v." and verify the name appears on BOTH sides.
+                    # If only one side matches, zero out BOTH so Method C also skips.
+                    if p_lower == d_lower and has_plaintiff:
+                        v_parts = re.split(r"\s+v\.?\s+", name_lower, maxsplit=1, flags=re.IGNORECASE)
+                        if len(v_parts) == 2 and p_lower in v_parts[0] and p_lower in v_parts[1]:
+                            has_plaintiff = True
+                            has_defendant = True
+                        else:
+                            # Partial or no match — zero both so Methods B and C skip
+                            has_plaintiff = False
+                            has_defendant = False
 
                     if has_plaintiff and has_defendant and year_ok:
                         if target_triplet:
@@ -628,13 +759,36 @@ class CitationVerifier:
                         # under a different citation — wrong cite hallucination.
                         if result_cites and target_triplet:
                             return None
-                        return (85, result_url, f"parties ({plaintiff}, {defendant}) + year match")
+                        # No triplet (WL/vendor cite): both party names match but the
+                        # citation number itself cannot be confirmed.  Common names like
+                        # "Gonzalez" or "Perez" appear in thousands of cases — a substring
+                        # hit is not strong enough to verify.  Cap well below the 75%
+                        # gate so Tier 5 (Lexis/Westlaw) must confirm.
+                        if not target_triplet:
+                            return (55, result_url, f"parties ({plaintiff}, {defendant}) + year match — WL/vendor number unconfirmed")
+                        # Both parties match + triplet is set but result_cites is empty
+                        # (CL result has no normalized citations to cross-check).
+                        # Lower to 65% so Tier 5 runs rather than returning Verified.
+                        return (65, result_url, f"parties ({plaintiff}, {defendant}) + year match — citation number unconfirmed")
 
                     # Method C: Single party + token overlap (weaker but still useful)
                     if (has_plaintiff or has_defendant) and year_ok and cited_name:
                         overlap_ratio, overlap_count = _name_token_overlap(cited_name, result_name)
                         if overlap_ratio >= 0.4 and overlap_count >= 1:
                             matched_party = plaintiff if has_plaintiff else defendant
+                            # No triplet: single-party match is very weak evidence.
+                            # Cap below threshold so Tier 5 must confirm.
+                            if not target_triplet:
+                                return (35, result_url, f"party '{matched_party}' + token overlap ({overlap_ratio:.0%}) — WL/vendor number unconfirmed")
+                            # Result has citations but none match our triplet → wrong cite.
+                            if result_cites and not any(triplet_match(c, target_triplet) for c in result_cites):
+                                return None
+                            # No citations in CL result to cross-check the triplet.
+                            # A single-party name match is too weak to verify a specific
+                            # citation — many cases share one party name.  Reject so
+                            # the pipeline reaches a Potential Hallucination verdict.
+                            if not result_cites:
+                                return None
                             return (75, result_url, f"party '{matched_party}' + token overlap ({overlap_ratio:.0%})")
 
             # Check 3: Reporter triplet in result citations
@@ -654,6 +808,123 @@ class CitationVerifier:
 
         return None
 
+    # ─── Tier 1b: uslaw.link ────────────────────────────────────────────
+
+    def _tier1b_uslaw_link(
+        self,
+        citation: ExtractedCitation,
+        attempts: List[SearchAttempt],
+    ) -> Optional[VerificationDecision]:
+        """Verify via uslaw.link — a free federal citation resolver.
+
+        Returns non-empty JSON array on hit, [] on miss.
+        Also catches case-name misattribution: if the citation resolves but
+        the returned title doesn't match our case name, flag as Potential
+        Hallucination (same pattern as the CourtListener wrong-case check).
+
+        Skips vendor cites (WL/Lexis) — uslaw.link only handles reporter cites.
+        """
+        if self._session is None:
+            return None
+
+        p = citation.parsed
+        base = p.base_citation or strip_pincite(citation.normalized_citation)
+        if not base:
+            return None
+
+        is_vendor = bool(_WESTLAW_PATTERN.match(base) or _LEXIS_PATTERN.match(base))
+        if is_vendor:
+            return None
+
+        USLAW_URL = "https://uslaw.link/citation/find"
+        success = False
+        error = None
+        match_url = None
+        returned_title = ""
+        raw_data: list = []
+
+        try:
+            resp = self._session.get(
+                USLAW_URL,
+                params={"text": base},
+                timeout=self.request_timeout,
+                headers={"Accept": "application/json"},
+            )
+            if resp.status_code == 200:
+                raw_data = resp.json() if isinstance(resp.json(), list) else []
+                if raw_data:
+                    result = raw_data[0]
+                    returned_title = result.get("title") or ""
+                    reporter_obj = result.get("reporter") or {}
+                    rid = reporter_obj.get("id") or ""
+                    # Prefer CourtListener deep link if available
+                    links = reporter_obj.get("links") or {}
+                    cl_link = (links.get("courtlistener") or {}).get("html") or ""
+                    if cl_link:
+                        match_url = cl_link
+                    elif rid:
+                        match_url = f"https://uslaw.link/{rid}"
+                    success = True
+            elif resp.status_code >= 400:
+                error = f"HTTP {resp.status_code}"
+        except Exception as exc:
+            error = str(exc)
+
+        # Case-name mismatch check — same logic as CourtListener wrong-case guard
+        cited_name = p.case_name or case_name_from_metadata(citation.metadata)
+        if success and returned_title and cited_name:
+            overlap_ratio, overlap_count = _name_token_overlap(cited_name, returned_title)
+            if overlap_ratio < 0.2 and overlap_count == 0:
+                attempts.append(SearchAttempt(
+                    source="uslaw.link",
+                    strategy="uslaw_citation",
+                    query=base,
+                    success=False,
+                    result_count=1,
+                    url=match_url or USLAW_URL,
+                    details=f"Citation exists but case name mismatch: returned '{returned_title}'",
+                    error=None,
+                ))
+                confidence = _hallucination_confidence(len(attempts))
+                return VerificationDecision(
+                    status="Potential Hallucination",
+                    confidence=confidence,
+                    evidence=(
+                        f"Citation {base} resolves via uslaw.link to '{returned_title}', "
+                        f"not '{cited_name}'. The case name appears fabricated or misattributed."
+                    ),
+                    search_attempts=attempts,
+                )
+
+        attempts.append(SearchAttempt(
+            source="uslaw.link",
+            strategy="uslaw_citation",
+            query=base,
+            success=success,
+            result_count=1 if success else 0,
+            url=match_url or USLAW_URL,
+            details=(
+                f"Citation resolved to '{returned_title}'" if success
+                else ("Citation not found in uslaw.link" if not error else f"Error: {error}")
+            ),
+            error=error,
+        ))
+
+        if success:
+            evidence = f"uslaw.link resolved {base}"
+            if returned_title:
+                evidence += f" → '{returned_title}'"
+            return VerificationDecision(
+                status="Verified (uslaw.link)",
+                confidence=90,
+                source="uslaw.link",
+                source_url=match_url,
+                evidence=evidence,
+                search_attempts=attempts,
+            )
+
+        return None
+
     # ─── Tier 3: Google Scholar ─────────────────────────────────────────
 
     def _tier3_google_scholar(
@@ -669,6 +940,14 @@ class CitationVerifier:
         base = p.base_citation or strip_pincite(citation.normalized_citation)
         case_name = p.case_name or case_name_from_metadata(citation.metadata)
         target_triplet = reporter_triplet(base) if base else None
+
+        is_vendor = bool(_WESTLAW_PATTERN.match(base) or _LEXIS_PATTERN.match(base))
+
+        # WL/Lexis cites: Scholar doesn't index proprietary vendor numbers —
+        # any hit is just Scholar echoing our query. Skip Scholar entirely;
+        # rely on party name search (Tiers 2-2b) and Tier 5 (Lexis/Westlaw).
+        if is_vendor:
+            return None
 
         strategies: List[Tuple[str, str]] = [("scholar_citation", base)]
         if case_name:
@@ -691,14 +970,39 @@ class CitationVerifier:
                 )
                 if response.status_code < 400:
                     body = response.text
-                    if base in body:
+                    body_lower = body.lower()
+                    if target_triplet:
+                        # Require the full citation string (volume + reporter + page)
+                        # to appear together in the body.  Checking volume and page
+                        # separately is too loose — both can appear as unrelated numbers.
+                        vol, rep, page = target_triplet
+                        full_cite = f"{vol} {rep} {page}"
+                        citation_found = full_cite.lower() in body_lower
+                        # Also accept without periods for variants like "F4th"
+                        alt_rep = rep.replace(".", "")
+                        citation_found = citation_found or f"{vol} {alt_rep} {page}".lower() in body_lower
+                    else:
+                        # No standard triplet (IL App, etc.): require 4+ occurrences.
+                        citation_found = body.count(base) >= 4
+
+                    # Cross-check case name: require at least one party token to
+                    # appear in the Scholar results.  This catches the pattern of
+                    # a real citation number belonging to a different case — a
+                    # fabricated "Smith v. Jones, 102 F.4th 456" fails if Scholar's
+                    # result for "102 F.4th 456" shows a completely different case.
+                    if citation_found and case_name:
+                        name_tokens = _extract_name_tokens(case_name)
+                        if name_tokens:
+                            name_found = any(
+                                tok in body_lower for tok in name_tokens
+                                if len(tok) > 3  # skip noise words already filtered
+                            )
+                            if not name_found:
+                                citation_found = False
+
+                    if citation_found:
                         success = True
                         match_url = scholar_url
-                    elif target_triplet:
-                        vol, _, page = target_triplet
-                        if f">{vol} " in body and f" {page}" in body:
-                            success = True
-                            match_url = scholar_url
                 else:
                     error = f"HTTP {response.status_code}"
             except Exception as exc:
@@ -726,7 +1030,111 @@ class CitationVerifier:
 
         return None
 
-    # ─── Tier 4: Web Docket Search ──────────────────────────────────────
+    # ─── Tier 4: Brave Search API ───────────────────────────────────────
+
+    def _tier4_brave_search(
+        self,
+        citation: ExtractedCitation,
+        attempts: List[SearchAttempt],
+    ) -> Optional[VerificationDecision]:
+        """Verify via Brave Search API."""
+        import os
+        api_key = os.environ.get("BRAVE_API_KEY")
+        if not api_key or self._session is None:
+            return None
+
+        p = citation.parsed
+        base = p.base_citation or strip_pincite(citation.normalized_citation)
+        case_name = p.case_name or case_name_from_metadata(citation.metadata)
+        plaintiff = p.plaintiff or str(citation.metadata.get("plaintiff") or "").strip() or None
+        defendant = p.defendant or str(citation.metadata.get("defendant") or "").strip() or None
+
+        queries: List[Tuple[str, str]] = []
+        if case_name and base:
+            queries.append(("brave_name_citation", f'"{case_name}" {base}'))
+        if plaintiff and base:
+            queries.append(("brave_plaintiff_citation", f'"{plaintiff}" {base}'))
+        if defendant and base:
+            queries.append(("brave_defendant_citation", f'"{defendant}" {base}'))
+        if base:
+            queries.append(("brave_citation", f'"{base}" case law'))
+
+        for strategy, query_text in queries:
+            brave_url = "https://api.search.brave.com/res/v1/web/search"
+            success = False
+            error = None
+            match_url: Optional[str] = None
+            result_count = 0
+
+            try:
+                resp = self._session.get(
+                    brave_url,
+                    params={"q": query_text, "count": 5},
+                    headers={"X-Subscription-Token": api_key, "Accept": "application/json"},
+                    timeout=self.request_timeout,
+                )
+                if resp.status_code == 200:
+                    data = resp.json()
+                    web_results = data.get("web", {}).get("results", [])
+                    result_count = len(web_results)
+                    triplet = reporter_triplet(base) if base else None
+                    # Only trust results from authoritative legal case sources.
+                    # Law review articles, secondary sources, and general commentary
+                    # may cite or discuss a reporter/page number without it being
+                    # the actual case — filter to primary-source domains.
+                    _CASE_DOMAINS = (
+                        "courtlistener.com", "scholar.google.com",
+                        "justia.com", "casetext.com", "law.justia.com",
+                        "law.cornell.edu/supremecourt", "supremecourt.gov",
+                        "ca9.uscourts.gov", "ca1.uscourts.gov", "ca2.uscourts.gov",
+                        "ca3.uscourts.gov", "ca4.uscourts.gov", "ca5.uscourts.gov",
+                        "ca6.uscourts.gov", "ca7.uscourts.gov", "ca8.uscourts.gov",
+                        "ca10.uscourts.gov", "ca11.uscourts.gov", "cadc.uscourts.gov",
+                        "cafc.uscourts.gov", "leagle.com", "law.resource.org",
+                    )
+                    for r in web_results:
+                        url = r.get("url") or ""
+                        if not any(d in url for d in _CASE_DOMAINS):
+                            continue
+                        snippet = (r.get("description") or "") + " " + (r.get("title") or "")
+                        if base and base.lower() in snippet.lower():
+                            success = True
+                            match_url = url
+                            break
+                        if triplet:
+                            vol, _, page = triplet
+                            if vol in snippet and page in snippet:
+                                success = True
+                                match_url = url
+                                break
+                else:
+                    error = f"HTTP {resp.status_code}"
+            except Exception as exc:
+                error = str(exc)
+
+            attempts.append(SearchAttempt(
+                source="Brave Search",
+                strategy=strategy,
+                query=query_text,
+                success=success,
+                result_count=result_count,
+                url=match_url or brave_url,
+                details="Citation found in Brave Search results" if success else "No match",
+                error=error,
+            ))
+            if success:
+                return VerificationDecision(
+                    status="Verified (Web Search)",
+                    confidence=80,
+                    source="Brave Search",
+                    source_url=match_url,
+                    evidence=f"Brave Search '{strategy}' found a matching citation.",
+                    search_attempts=attempts,
+                )
+
+        return None
+
+    # ─── Tier 4b: Web Docket Search ─────────────────────────────────────
 
     def _tier4_web_docket_search(
         self,
@@ -814,6 +1222,66 @@ class CitationVerifier:
 
         return None
 
+    # ─── Tier 5: Westlaw / Lexis Escalation ─────────────────────────────
+
+    def _tier5_legal_research(
+        self,
+        citation: ExtractedCitation,
+        attempts: List[SearchAttempt],
+    ) -> Optional[VerificationDecision]:
+        """Escalate to Westlaw KeyCite or Lexis Shepardize as last resort."""
+        try:
+            from .legal_escalation import escalate_citation
+        except ImportError:
+            return None
+
+        p = citation.parsed
+        base = p.base_citation or strip_pincite(citation.normalized_citation)
+        if not base:
+            return None
+
+        status, evidence, url, service = escalate_citation(base)
+
+        source_label = "Westlaw (KeyCite)" if service == "westlaw" else "Lexis+ (Shepard's)"
+
+        attempts.append(SearchAttempt(
+            source=source_label,
+            strategy=f"{service}_escalation",
+            query=base,
+            success=status in ("verified", "caution"),
+            result_count=1 if status not in ("not_found", "error", "skipped") else 0,
+            url=url,
+            details=evidence,
+            error=None if status != "error" else evidence,
+        ))
+
+        if status == "skipped":
+            return None  # cap reached — fall through to final verdict
+
+        if status == "error":
+            return None  # session issue — don't block final verdict
+
+        if status == "not_found":
+            return VerificationDecision(
+                status="Potential Hallucination",
+                confidence=92,
+                source=source_label,
+                source_url=url,
+                evidence=f"{source_label}: {evidence}",
+                search_attempts=attempts,
+            )
+
+        # negative, caution, or verified — citation exists either way;
+        # flag info goes in evidence only, does not affect Verified status
+        return VerificationDecision(
+            status=f"Verified ({source_label})",
+            confidence=95,
+            source=source_label,
+            source_url=url,
+            evidence=evidence,  # already contains flag detail from escalate_citation
+            search_attempts=attempts,
+        )
+
     # ─── Shared helpers ─────────────────────────────────────────────────
 
     def _check_results(
@@ -854,8 +1322,11 @@ class CitationVerifier:
     ) -> Tuple[Optional[Dict[str, Any]], Optional[str], Optional[str]]:
         if self._session is None:
             return None, None, "requests is not installed"
+        headers = {}
+        if self._api_token and "courtlistener.com" in url:
+            headers["Authorization"] = f"Token {self._api_token}"
         try:
-            response = self._session.get(url, params=params, timeout=self.request_timeout)
+            response = self._session.get(url, params=params, timeout=self.request_timeout, headers=headers or None)
         except Exception as exc:
             return None, None, str(exc)
 
@@ -907,7 +1378,8 @@ def raw_reporter_from_citation(citation: str) -> str:
 
 def reporter_triplet(citation: str) -> Optional[Tuple[str, str, str]]:
     """Extract (volume, canonical_reporter, page) tuple from a citation."""
-    pattern = re.compile(r"\b(\d{1,4})\s+([A-Za-z][A-Za-z\s\.]{0,40}[A-Za-z\.])\s+(\d{1,5})\b")
+    # Allow digits in reporter to handle ordinal editions like "3d", "2d", "4th"
+    pattern = re.compile(r"\b(\d{1,4})\s+([A-Za-z][A-Za-z0-9\s\.]{0,40}[A-Za-z\.])\s+(\d{1,5})\b")
     match = pattern.search(citation)
     if not match:
         return None
@@ -990,15 +1462,37 @@ def _name_token_overlap(name_a: str, name_b: str) -> Tuple[float, int]:
     """Compute token overlap ratio between two case names.
 
     Returns (overlap_ratio, num_matching_tokens).
-    overlap_ratio is relative to the smaller token set.
+    overlap_ratio uses Jaccard similarity (intersection / union) to prevent
+    a short one-token name from artificially scoring 100% overlap.
     """
     tokens_a = _extract_name_tokens(name_a)
     tokens_b = _extract_name_tokens(name_b)
     if not tokens_a or not tokens_b:
         return (0.0, 0)
     common = tokens_a & tokens_b
-    smaller = min(len(tokens_a), len(tokens_b))
-    return (len(common) / smaller, len(common))
+    union = tokens_a | tokens_b
+    return (len(common) / len(union), len(common))
+
+
+_PARTY_NOISE_RE = re.compile(
+    r"""^(?:
+        (?:northern|southern|eastern|western|central)\s+district\s+(?:of\s+)?\w+\s*,?\s* |
+        (?:district|superior|supreme|circuit)\s+court\s*,?\s* |
+        in\s+(?:re|the\s+matter\s+of)\s+
+    )+""",
+    re.IGNORECASE | re.VERBOSE,
+)
+
+
+def _clean_party_token(name: str) -> str:
+    """Strip court/procedural prefixes that eyecite bleeds into party names."""
+    if not name:
+        return name
+    name = _PARTY_NOISE_RE.sub("", name).strip().rstrip(",").strip()
+    # If a comma remains (e.g. "Castellano, No. 4:24-cv-1892"), take just the first token
+    if "," in name:
+        name = name.split(",")[0].strip()
+    return name
 
 
 def _count_results(data: Dict[str, Any]) -> int:
@@ -1067,40 +1561,111 @@ def _match_courtlistener_result(
     meta_name = citation.parsed.case_name or case_name_from_metadata(citation.metadata)
     meta_year = citation.parsed.year or str(citation.metadata.get("year") or "")
 
+    # Collect all citation-matching candidates, score by name overlap,
+    # return the best match.  Taking the first match is wrong when another
+    # case's opinion *cites* the target — we want the case that IS the target.
+    citation_matches: List[Tuple[float, Dict[str, Any]]] = []
+
     for result in candidates:
         if not isinstance(result, dict):
             continue
 
+        result_name = _get_case_name(result)
+        result_date = str(result.get("dateFiled") or result.get("date_filed") or "")
+        year_ok = (not meta_year) or (meta_year in result_date)
+
         # Check citation fields
+        cite_match = False
         for cite_str in _get_citation_strings(result):
             if _citations_equivalent(cite_str, target_text, target_triplet):
-                return result
+                cite_match = True
+                break
 
         # Check snippet/text fields
-        for text_field in ("snippet", "text", "plain_text", "html"):
-            text_value = result.get(text_field, "")
-            if isinstance(text_value, str) and target_text in text_value:
-                return result
+        if not cite_match:
+            for text_field in ("snippet", "text", "plain_text", "html"):
+                text_value = result.get(text_field, "")
+                if isinstance(text_value, str) and target_text in text_value:
+                    cite_match = True
+                    break
 
-        # Triplet match against case name fields
+        if cite_match:
+            # Score by name overlap so the actual case ranks above cases that merely cite it
+            name_score = 0.0
+            if meta_name and result_name:
+                name_score, _ = _name_token_overlap(meta_name, result_name)
+            citation_matches.append((name_score, result))
+            continue
+
+        # Triplet match against case name fields (weaker — last resort)
         if target_triplet:
             for field_name in ("caseName", "case_name", "caseNameFull"):
                 val = str(result.get(field_name, ""))
                 if triplet_match(val, target_triplet):
-                    return result
+                    citation_matches.append((0.0, result))
+                    break
 
-        # Fallback: name/year match
-        result_name = _get_case_name(result)
-        result_date = str(result.get("dateFiled") or result.get("date_filed") or "")
-        if meta_name and result_name:
+        # Fallback: name/year match (no citation confirmation)
+        if meta_name and result_name and year_ok:
             canonical_meta = canonical_text(meta_name)
             canonical_case = canonical_text(result_name)
             if canonical_meta and re.search(
                 r"\b" + re.escape(canonical_meta) + r"\b", canonical_case
             ):
-                if not meta_year or meta_year in result_date:
-                    return result
+                # Don't add to citation_matches — name-only, handled by _best_party_match
+                pass
 
+    if not citation_matches:
+        return None
+
+    # Sort by name overlap descending; require at least 20% overlap if we have a name
+    citation_matches.sort(key=lambda x: x[0], reverse=True)
+    best_score, best_result = citation_matches[0]
+    if meta_name and best_score < 0.2:
+        return None  # citation found but belongs to a completely different case
+    return best_result
+
+
+def _citation_found_wrong_case(
+    citation: "ExtractedCitation",
+    data: Optional[Dict[str, Any]],
+    base_citation: Optional[str] = None,
+) -> Optional[str]:
+    """Return the actual case name if citation numbers are found in CL but belong
+    to a different case than the one named in the brief.
+
+    Returns the actual_case_name string if mismatch detected, else None.
+    Used by Tier 1 to short-circuit Brave search when the citation IS real
+    but is misattributed to a non-existent case name.
+    """
+    if data is None:
+        return None
+    candidates = data.get("results")
+    if not isinstance(candidates, list):
+        return None
+
+    target_text = base_citation or citation.normalized_citation
+    target_triplet = reporter_triplet(target_text)
+    meta_name = citation.parsed.case_name or case_name_from_metadata(citation.metadata)
+    if not meta_name:
+        return None  # no case name in brief → can't detect mismatch
+
+    for result in candidates:
+        if not isinstance(result, dict):
+            continue
+        cite_match = False
+        for cite_str in _get_citation_strings(result):
+            if _citations_equivalent(cite_str, target_text, target_triplet):
+                cite_match = True
+                break
+        if not cite_match:
+            continue
+        result_name = _get_case_name(result)
+        if not result_name:
+            continue
+        name_score, _ = _name_token_overlap(meta_name, result_name)
+        if name_score < 0.2:
+            return result_name  # citation exists but for a different case
     return None
 
 

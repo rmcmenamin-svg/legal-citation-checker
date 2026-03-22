@@ -18,16 +18,19 @@ logger = logging.getLogger("citation-checker")
 
 # ── Document type detection from filename ──────────────────────────────
 
+# Specific types checked before generic "exhibit" so that
+# "Ex. 5 - Smith Declaration.pdf" is typed as "declaration", not "exhibit".
 _TYPE_PATTERNS = [
-    (re.compile(r"exhibit[_\s\-]*([A-Z]|\d+)", re.IGNORECASE), "exhibit"),
     (re.compile(r"dep(?:osition)?", re.IGNORECASE), "deposition"),
-    (re.compile(r"complaint", re.IGNORECASE), "complaint"),
-    (re.compile(r"answer", re.IGNORECASE), "answer"),
+    (re.compile(r"transcript|tr[_\s\-]", re.IGNORECASE), "transcript"),
     (re.compile(r"decl(?:aration)?", re.IGNORECASE), "declaration"),
     (re.compile(r"aff(?:idavit)?", re.IGNORECASE), "declaration"),
+    (re.compile(r"complaint", re.IGNORECASE), "complaint"),
+    (re.compile(r"answer", re.IGNORECASE), "answer"),
     (re.compile(r"order", re.IGNORECASE), "order"),
-    (re.compile(r"transcript|tr[_\s\-]", re.IGNORECASE), "transcript"),
     (re.compile(r"(?:dkt|ecf|doc)[_\s\-]*\d+", re.IGNORECASE), "docket"),
+    (re.compile(r"exhibit[_\s\-]*([A-Z]|\d+)", re.IGNORECASE), "exhibit"),
+    (re.compile(r"\bex[_\.\s\-]*\d+\b", re.IGNORECASE), "exhibit"),
 ]
 
 
@@ -58,28 +61,52 @@ def _filename_to_label(filename: str) -> str:
 
 # ── Paragraph numbering for complaints/declarations ────────────────────
 
+# Plain "1. text" format
 _PARA_NUMBER_RE = re.compile(r"^\s*(\d+)\.\s+")
-_LEGAL_PARA_RE = re.compile(r"^(?:\d+\.\s+|[¶]\s*\d+)")
+# California line-numbered format: "25 6. text" — line number then para number
+_CA_LINE_PARA_RE = re.compile(r"^\s*\d{1,2}\s+(\d+)\.\s+(.+)$")
 
 
 def _extract_numbered_paragraphs(text: str) -> Dict[int, str]:
     """Extract numbered paragraphs from a complaint or declaration.
 
-    Looks for patterns like "1. ...", "2. ...", or "¶ 1 ..."
+    Handles two formats:
+    - Plain: "1. ...", "2. ..."
+    - California line-numbered: "25 6. Plaintiffs..." (line num then para num)
     """
     paragraphs: Dict[int, str] = {}
     current_num = None
     current_lines: List[str] = []
 
-    for line in text.split("\n"):
+    # Detect California line-numbered format by scanning the full text.
+    # We can't limit to first N lines because cover pages and exhibit headers
+    # may precede the declaration body.
+    all_lines = text.split("\n")
+    ca_matches = sum(1 for line in all_lines if _CA_LINE_PARA_RE.match(line.strip()))
+    use_ca_format = ca_matches >= 5
+
+    for line in all_lines:
         stripped = line.strip()
         if not stripped:
             continue
 
-        # Check for a new numbered paragraph
+        if use_ca_format:
+            m = _CA_LINE_PARA_RE.match(stripped)
+            if m:
+                if current_num is not None:
+                    paragraphs[current_num] = " ".join(current_lines).strip()
+                current_num = int(m.group(1))
+                current_lines = [m.group(2).strip()]
+                continue
+            # Continuation line: starts with a line number only
+            cont = re.match(r"^\s*\d{1,2}\s+(.+)$", stripped)
+            if cont and current_num is not None:
+                current_lines.append(cont.group(1).strip())
+            continue
+
+        # Plain format
         m = _PARA_NUMBER_RE.match(stripped)
         if m:
-            # Save previous paragraph
             if current_num is not None:
                 paragraphs[current_num] = " ".join(current_lines).strip()
             current_num = int(m.group(1))
@@ -213,6 +240,11 @@ class CorpusIndex:
         self._label_map: Dict[str, CorpusDocument] = {}
         self._rebuild_index()
 
+    # Regex to detect exhibit-prefixed labels like "Ex. 12", "Ex 3", "Exh. A"
+    _EX_PREFIX_RE = re.compile(
+        r'^(ex[h]?\.?\s*)(\d+|[A-Za-z])\b', re.IGNORECASE
+    )
+
     def _rebuild_index(self) -> None:
         """Rebuild the label lookup index."""
         self._label_map.clear()
@@ -231,6 +263,17 @@ class CorpusIndex:
             elif doc.document_type == "answer":
                 for alias in ("Ans.", "Ans"):
                     self._label_map[alias.lower()] = doc
+
+            # For labels starting with "Ex. N", "Ex N", "Exh. N" (regardless of
+            # document_type — e.g. a deposition file named "Ex. 12 - de Baere..."),
+            # add "Exhibit N" and all short-form aliases so both directions match.
+            ex_match = self._EX_PREFIX_RE.match(doc.label)
+            if ex_match and "exhibit" not in doc.label.lower():
+                num = ex_match.group(2)
+                self._label_map[f"exhibit {num}".lower()] = doc
+                for prefix in ("Ex.", "Ex", "Exh."):
+                    self._label_map[f"{prefix} {num}".lower()] = doc
+                    self._label_map[f"{prefix}{num}".lower()] = doc
 
     @classmethod
     def from_directory(cls, corpus_dir: str | Path) -> "CorpusIndex":
@@ -286,6 +329,11 @@ class CorpusIndex:
 
         return cls(documents=documents)
 
+    # Regex to normalise "Exhibit N" / "Exhibit A" queries to "ex. N" for lookup
+    _EXHIBIT_NORM_RE = re.compile(
+        r'^exhibit\s+(\d+|[A-Za-z])\b', re.IGNORECASE
+    )
+
     def find_document(self, label: str) -> Optional[CorpusDocument]:
         """Find a document by label (case-insensitive, fuzzy)."""
         # Exact match first
@@ -298,27 +346,43 @@ class CorpusIndex:
         if cleaned in self._label_map:
             return self._label_map[cleaned]
 
-        # Try fuzzy: look for label as substring of any indexed label
+        # Normalise "Exhibit N" -> "ex. N" so it matches docs filed as "Ex. 12 - ..."
+        ex_norm = self._EXHIBIT_NORM_RE.match(key)
+        if ex_norm:
+            num = ex_norm.group(1)
+            for alt in (f"ex. {num}", f"ex {num}", f"exh. {num}", f"exhibit {num}"):
+                if alt in self._label_map:
+                    return self._label_map[alt]
+
+        # Try fuzzy: look for label as substring of any indexed label.
+        # Use word-boundary check to prevent "ex. 1" from matching "ex. 10".
+        def _word_boundary_match(needle: str, haystack: str) -> bool:
+            pos = haystack.find(needle)
+            if pos == -1:
+                return False
+            end = pos + len(needle)
+            # The character immediately after the match must not be alphanumeric
+            return end >= len(haystack) or not haystack[end].isalnum()
+
         for indexed_label, doc in self._label_map.items():
-            if key in indexed_label or indexed_label in key:
+            if _word_boundary_match(key, indexed_label) or _word_boundary_match(indexed_label, key):
                 return doc
 
         # Deposition special case: "Smith Dep." -> look for any doc with
-        # "smith" in label and type "deposition"
+        # "smith" in label (no type check — file may be typed as "exhibit")
         if "dep" in key:
-            # Extract the witness name part
-            name_part = key.split("dep")[0].strip().rstrip(".")
+            name_part = key.split("dep")[0].strip().rstrip(". ")
             if name_part:
                 for doc in self.documents:
-                    if doc.document_type == "deposition" and name_part in doc.label.lower():
+                    if name_part in doc.label.lower():
                         return doc
 
         # Declaration/Affidavit special case
         if "decl" in key or "aff" in key:
-            name_part = re.split(r"(?:decl|aff)", key, flags=re.IGNORECASE)[0].strip().rstrip(".")
+            name_part = re.split(r"(?:decl|aff)", key, flags=re.IGNORECASE)[0].strip().rstrip(". ")
             if name_part:
                 for doc in self.documents:
-                    if doc.document_type == "declaration" and name_part in doc.label.lower():
+                    if name_part in doc.label.lower():
                         return doc
 
         return None

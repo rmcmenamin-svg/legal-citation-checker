@@ -30,10 +30,10 @@ PARTY_PREFIX_RE = re.compile(
 # Uses word boundary \b and requires the Ex/Exhibit keyword to NOT be part of a larger word.
 EXHIBIT_RE = re.compile(
     r"(?P<party>(?:Pl(?:aintiff)?(?:'s|s')?|Def(?:endant)?(?:'s|s')?|"
-    r"Third[- ]Party\s+(?:Pl(?:aintiff)?|Def(?:endant)?)(?:'s|s')?)\s+)?"
-    r"(?:Exhibit\s+(?P<label1>[A-Z]{1,3}|\d{1,4})"
-    r"|Ex(?:h)?\.?\s+(?P<label2>[A-Z]{1,3}|\d{1,4}))"
-    r"(?:\s+at\s+(?P<page>\d+(?:\s*[-–]\s*\d+)?))?",
+    r"Third[- ]Party[^\S\n]+(?:Pl(?:aintiff)?|Def(?:endant)?)(?:'s|s')?)[^\S\n]+)?"
+    r"(?:Exhibit[^\S\n]+(?P<label1>[A-Z]{1,3}|\d{1,4})"
+    r"|Ex(?:h)?\.?[^\S\n]+(?P<label2>[A-Z]{1,3}|\d{1,4}))"
+    r"(?:[^\S\n]+at[^\S\n]+(?P<page>\d+(?:[^\S\n]*[-–][^\S\n]*\d+)?))?",
 )
 
 # Deposition references: "Smith Dep. 45:12-15", "Dep. of Jane Doe, 112:3-8"
@@ -57,8 +57,8 @@ DEPOSITION_RE = re.compile(
 
 # Complaint paragraph references: "Compl. ¶ 34", "Complaint ¶¶ 12-15", "Compl. at ¶ 7"
 COMPLAINT_RE = re.compile(
-    r"Compl(?:aint)?\.?\s*(?:at\s+)?[¶P]\s*[¶P]?\s*(?P<para>\d+)"
-    r"(?:\s*[-–]\s*(?P<para_end>\d+))?",
+    r"Compl(?:aint)?\.?[^\S\n]*(?:at[^\S\n]+)?[¶P][^\S\n]*[¶P]?[^\S\n]*(?P<para>\d+)"
+    r"(?:[^\S\n]*[-–][^\S\n]*(?P<para_end>\d+))?",
     re.IGNORECASE,
 )
 
@@ -67,12 +67,12 @@ DECLARATION_RE = re.compile(
     r"(?:"
     # Form 1: "Name Decl./Aff. ¶ N"
     r"(?P<witness1>(?:[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?))\s+"
-    r"(?:Decl(?:aration)?|Aff(?:idavit)?)\.?\s*(?:at\s+)?[¶P]\s*(?P<para1>\d+)"
+    r"(?:Decl(?:aration)?|Aff(?:idavit)?)\.?[^\S\n]*(?:at[^\S\n]+)?[¶P][^\S\n]*(?P<para1>\d+)"
     r"|"
     # Form 2: "Decl./Aff. of Name ¶ N"
     r"(?:Decl(?:aration)?|Aff(?:idavit)?)\.?\s+of\s+"
     r"(?P<witness2>(?:[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?))"
-    r"(?:\s*,?\s*|\s+at\s+|\s+)[¶P]\s*(?P<para2>\d+)"
+    r"(?:[^\S\n]*,?[^\S\n]*|[^\S\n]+at[^\S\n]+|[^\S\n]+)[¶P][^\S\n]*(?P<para2>\d+)"
     r")",
     re.IGNORECASE,
 )
@@ -94,8 +94,8 @@ TRANSCRIPT_RE = re.compile(
 
 # Answer paragraph references: "Answer ¶ 12", "Ans. ¶¶ 5-8"
 ANSWER_RE = re.compile(
-    r"Ans(?:wer)?\.?\s*(?:at\s+)?[¶P]\s*[¶P]?\s*(?P<para>\d+)"
-    r"(?:\s*[-–]\s*(?P<para_end>\d+))?",
+    r"Ans(?:wer)?\.?[^\S\n]*(?:at[^\S\n]+)?[¶P][^\S\n]*[¶P]?[^\S\n]*(?P<para>\d+)"
+    r"(?:[^\S\n]*[-–][^\S\n]*(?P<para_end>\d+))?",
     re.IGNORECASE,
 )
 

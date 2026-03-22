@@ -349,6 +349,43 @@ class PropositionBinder:
                 ))
                 bound_quotes.add(qi)
 
+        # Tier 3b: Quote in the sentence immediately following the citation.
+        # Legal writing commonly uses "[Citation]. The court held that '[quote].' Id."
+        # In this pattern the quote is one sentence after the cite — still strong.
+        # Run before Tier 3 so this high-confidence binding isn't preempted by a
+        # weaker multi-forward-citation Tier 3 match.
+        for qi, quote in enumerate(self.quotes):
+            if qi in bound_quotes:
+                continue
+            if quote.sentence_index is None:
+                continue
+            # Citations in the immediately preceding sentence
+            prev_cites = [
+                c for c in sorted_cites
+                if c.sentence_index is not None
+                and c.sentence_index == quote.sentence_index - 1
+            ]
+            if len(prev_cites) == 1:
+                bindings.append(QuoteBinding(
+                    quote=quote,
+                    citation_start=prev_cites[0].start,
+                    confidence=0.75,
+                    tier=3,
+                    reason="quote immediately follows citation sentence",
+                ))
+                bound_quotes.add(qi)
+            elif prev_cites:
+                # Multiple cites in preceding sentence — bind to last (most recent in sentence)
+                target = prev_cites[-1]
+                bindings.append(QuoteBinding(
+                    quote=quote,
+                    citation_start=target.start,
+                    confidence=0.72,
+                    tier=3,
+                    reason="quote follows sentence with citations (nearest preceding)",
+                ))
+                bound_quotes.add(qi)
+
         # Tier 3: Quote precedes citation in same paragraph, no competing cite
         for qi, quote in enumerate(self.quotes):
             if qi in bound_quotes:

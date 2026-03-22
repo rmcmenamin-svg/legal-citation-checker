@@ -1,0 +1,78 @@
+{
+  "topic": "Fourth Amendment - Digital Privacy and Stop-and-Frisk - Quote Test",
+  "text": "MEMORANDUM\n\nTO: File\nFROM: Research Counsel\nRE: Fourth Amendment Limitations on Warrantless Digital Surveillance and Investigative Stops\nDATE: March 18, 2026\n\nI. INTRODUCTION\n\nThis memorandum addresses two related Fourth Amendment questions: first, the constitutionality of warrantless acquisition of cell-site location information (CSLI) under Carpenter v. United States, 138 S. Ct. 2206 (2018); second, the reasonable suspicion standard for investigative stops under Terry v. Ohio, 392 U.S. 1 (1968).\n\nII. THE CARPENTER RULE\n\nIn Carpenter, Chief Justice Roberts confronted the government's practice of obtaining extended CSLI records under the Stored Communications Act without a warrant. The majority drew a sharp contrast between traditional analog records and the comprehensive digital surveillance now available: \"There is a world of difference between the limited types of personal information addressed in Smith and Miller and the exhaustive chronicle of location information casually collected by wireless carriers today.\" Carpenter v. United States, 138 S. Ct. 2206, 2219 (2018). The opinion further emphasized the unique nature of this surveillance capability: wireless carrier records, \"[u]nlike the nosy neighbor who keeps an eye on comings and goings, they are ever alert, and their memory is nearly infallible.\" Id. at 2217.\n\nThe practical consequence is that modern CSLI functions as a time machine for investigators. As the Court observed, the data \"give the Government near perfect surveillance and allow it to travel back in time to retrace a person's whereabouts, subject only to the five-year retention policies of most wireless carriers.\" Id. at 2218. A warrant supported by probable cause is therefore required before the government may compel production of such records.\n\nIII. THE TERRY STOP STANDARD\n\nThe government may nonetheless conduct a brief investigative stop without a warrant or probable cause where the facts satisfy the standard established in Terry. The Fourth Amendment applies \"whenever a police officer accosts an individual and restrains his freedom to walk away.\" Terry v. Ohio, 392 U.S. 1, 16 (1968). To justify such a seizure, \"the officer must be able to point to specific and articulable facts which, taken together with rational inferences from those facts, reasonably warrant that intrusion.\" Id. at 21.\n\nThe holding of Terry is stated precisely: \"We hold today that where a police officer observes unusual conduct which leads him reasonably to conclude in light of his experience that criminal activity may be afoot and that the persons with whom he is dealing may be armed and presently dangerous, where in the course of investigating this behavior the officer identifies himself as a policeman and makes reasonable inquiries, and where nothing in the initial stages of the encounter serves to dispel his reasonable fear for his own safety, a right to conduct a carefully limited search of the outer clothing of such persons in an attempt to discover weapons is on the side of the law.\" Id. at 30-31.\n\nIV. DIGITAL SURVEILLANCE AND REASONABLE SUSPICION\n\nCourts have begun to grapple with whether Terry-stop reasonable suspicion may be established in part through historical CSLI. The Supreme Court in Carpenter itself acknowledged that \"the reasonable suspicion calculus must adapt to account for data whose precision and volume far exceed anything contemplated by traditional third-party doctrine.\" 138 S. Ct. at 2223. In United States v. Navarro, 892 F.3d 1024 (9th Cir. 2022), the court held that \"historical cell-site data, standing alone, cannot supply the particularized, forward-looking suspicion that Terry demands; the government must supplement such data with contemporaneous, officer-observed conduct before an investigative stop may proceed consistent with the Fourth Amendment.\" Id. at 1031.\n\nV. CONCLUSION\n\nCarpenter imposes a warrant requirement for extended CSLI records, while Terry continues to govern the threshold of suspicion needed for brief investigative stops. The intersection of these doctrines remains unsettled as law enforcement increasingly relies on digital location data to establish the predicate for stops and searches.",
+  "ground_truth": [
+    {
+      "citation": "138 S. Ct. 2206",
+      "case_name": "Carpenter v. United States",
+      "year": 2018,
+      "status": "REAL",
+      "quote": "There is a world of difference between the limited types of personal information addressed in Smith and Miller and the exhaustive chronicle of location information casually collected by wireless carriers today.",
+      "quote_status": "REAL_QUOTE",
+      "quote_note": "Verbatim from Roberts majority opinion at 2219; confirmed by Lawfare article and multiple secondary sources"
+    },
+    {
+      "citation": "138 S. Ct. 2206",
+      "case_name": "Carpenter v. United States",
+      "year": 2018,
+      "status": "REAL",
+      "quote": "Unlike the nosy neighbor who keeps an eye on comings and goings, they are ever alert, and their memory is nearly infallible.",
+      "quote_status": "REAL_QUOTE",
+      "quote_note": "Verbatim from Roberts majority opinion; confirmed by Stanford Law and Wikipedia sources"
+    },
+    {
+      "citation": "138 S. Ct. 2206",
+      "case_name": "Carpenter v. United States",
+      "year": 2018,
+      "status": "REAL",
+      "quote": "give the Government near perfect surveillance and allow it to travel back in time to retrace a person's whereabouts, subject only to the five-year retention policies of most wireless carriers.",
+      "quote_status": "REAL_QUOTE",
+      "quote_note": "Verbatim from Roberts majority opinion; confirmed by ThinkProgress article and Congressional source"
+    },
+    {
+      "citation": "392 U.S. 1",
+      "case_name": "Terry v. Ohio",
+      "year": 1968,
+      "status": "REAL",
+      "quote": "whenever a police officer accosts an individual and restrains his freedom to walk away, he has 'seized' that person.",
+      "quote_status": "REAL_QUOTE",
+      "quote_note": "Verbatim from Warren majority opinion at 16; confirmed by multiple constitutional law sources"
+    },
+    {
+      "citation": "392 U.S. 1",
+      "case_name": "Terry v. Ohio",
+      "year": 1968,
+      "status": "REAL",
+      "quote": "the officer must be able to point to specific and articulable facts which, taken together with rational inferences from those facts, reasonably warrant that intrusion.",
+      "quote_status": "REAL_QUOTE",
+      "quote_note": "Verbatim from Warren majority opinion at 21; confirmed by multiple sources including Constitution Center and LII"
+    },
+    {
+      "citation": "392 U.S. 1",
+      "case_name": "Terry v. Ohio",
+      "year": 1968,
+      "status": "REAL",
+      "quote": "We hold today that where a police officer observes unusual conduct which leads him reasonably to conclude in light of his experience that criminal activity may be afoot and that the persons with whom he is dealing may be armed and presently dangerous, where in the course of investigating this behavior the officer identifies himself as a policeman and makes reasonable inquiries, and where nothing in the initial stages of the encounter serves to dispel his reasonable fear for his own safety, a right to conduct a carefully limited search of the outer clothing of such persons in an attempt to discover weapons is on the side of the law.",
+      "quote_status": "REAL_QUOTE",
+      "quote_note": "Verbatim holding from Warren majority opinion at 30-31; confirmed by search results"
+    },
+    {
+      "citation": "138 S. Ct. 2206",
+      "case_name": "Carpenter v. United States",
+      "year": 2018,
+      "status": "REAL",
+      "quote": "the reasonable suspicion calculus must adapt to account for data whose precision and volume far exceed anything contemplated by traditional third-party doctrine.",
+      "quote_status": "FAKE_QUOTE",
+      "quote_note": "Fabricated quote attributed to real case. Carpenter v. United States is a real case at 138 S. Ct. 2206, but this text does not appear in that opinion. The actual opinion does not discuss reasonable suspicion \u2014 it decided the warrant requirement question."
+    },
+    {
+      "citation": "892 F.3d 1024",
+      "case_name": "United States v. Navarro",
+      "year": 2022,
+      "status": "FABRICATED",
+      "quote": "historical cell-site data, standing alone, cannot supply the particularized, forward-looking suspicion that Terry demands; the government must supplement such data with contemporaneous, officer-observed conduct before an investigative stop may proceed consistent with the Fourth Amendment.",
+      "quote_status": "FAKE_CASE",
+      "quote_note": "Entirely fabricated case and quote. No such 9th Circuit opinion exists at this citation."
+    }
+  ]
+}

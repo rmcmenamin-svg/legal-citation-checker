@@ -1,0 +1,42 @@
+{
+  "topic": "Employment Discrimination - Quote Test",
+  "text": "MEMORANDUM\n\nTO: File\nFROM: Research Counsel\nRE: Title VII Claims \u2014 Sexual Orientation and Gender Identity\nDATE: March 18, 2026\n\nI. INTRODUCTION\n\nThis memorandum surveys the legal framework governing Title VII discrimination claims involving sexual orientation and gender identity following the Supreme Court's landmark ruling in Bostock v. Clayton County, 140 S. Ct. 1731 (2020).\n\nII. THE BOSTOCK HOLDING\n\nIn Bostock, Justice Gorsuch delivered the opinion of a six-Justice majority and framed the case's significance at the outset: \"Sometimes small gestures can have unexpected consequences. Major initiatives practically guarantee them. In our time, few pieces of federal legislation rank in significance with the Civil Rights Act of 1964.\" The Court proceeded to apply the statute's plain text to reach a definitive conclusion.\n\nThe core holding rests on a straightforward but-for analysis: \"An employer who fires an individual for being homosexual or transgender fires that person for traits or actions it would not have questioned in members of a different sex.\" Bostock v. Clayton County, 140 S. Ct. 1731, 1741 (2020). Because sex is necessarily a but-for cause of such a discharge, the employer has discriminated \"because of sex\" within the meaning of Title VII.\n\nIII. THE McDONNELL DOUGLAS FRAMEWORK\n\nPlaintiffs advancing individual disparate-treatment claims must navigate the burden-shifting framework established in McDonnell Douglas Corp. v. Green, 411 U.S. 792 (1973). Under that framework, a plaintiff must first demonstrate that \"the selection of any individual employee for discharge must rest on a demonstrably neutral criterion untainted by racial or other impermissible considerations, ensuring that the marketplace of employment reflects the meritocratic principles Congress intended.\" Id. at 802. Once a prima facie case is established, the burden shifts to the employer to articulate a legitimate, nondiscriminatory reason for its action.\n\nIV. CONTINUING VIABILITY\n\nLower courts have uniformly held that Bostock did not disturb the McDonnell Douglas framework for individual disparate-treatment claims. See, e.g., Johnson v. Metro Transit Auth., 2025 WL 4419823 (S.D.N.Y. Feb. 12, 2025). In that case, the court wrote: \"The intersection of Bostock's categorical rule and McDonnell Douglas's individualized burden-shifting analysis creates a reinforcing structure in which the plaintiff's sex is presumptively implicated whenever sexual orientation forms any part of the employer's stated rationale.\" Id. at *4.\n\nV. CONCLUSION\n\nBostock establishes that Title VII's prohibition on sex discrimination encompasses discrimination based on sexual orientation and gender identity. Litigants must still satisfy the McDonnell Douglas framework in cases relying on circumstantial evidence, but Bostock's but-for causation rule substantially strengthens plaintiffs' ability to survive summary judgment.",
+  "ground_truth": [
+    {
+      "citation": "140 S. Ct. 1731",
+      "case_name": "Bostock v. Clayton County",
+      "year": 2020,
+      "status": "REAL",
+      "quote": "Sometimes small gestures can have unexpected consequences. Major initiatives practically guarantee them. In our time, few pieces of federal legislation rank in significance with the Civil Rights Act of 1964.",
+      "quote_status": "REAL_QUOTE",
+      "quote_note": "Verbatim opening of Justice Gorsuch's majority opinion; confirmed from CourtListener snippet for opinion ID 4541344"
+    },
+    {
+      "citation": "140 S. Ct. 1731",
+      "case_name": "Bostock v. Clayton County",
+      "year": 2020,
+      "status": "REAL",
+      "quote": "An employer who fires an individual for being homosexual or transgender fires that person for traits or actions it would not have questioned in members of a different sex.",
+      "quote_status": "REAL_QUOTE",
+      "quote_note": "Verbatim from Gorsuch majority opinion at 1741; confirmed by multiple sources including SCOTUSblog and LegalClarity"
+    },
+    {
+      "citation": "411 U.S. 792",
+      "case_name": "McDonnell Douglas Corp. v. Green",
+      "year": 1973,
+      "status": "REAL",
+      "quote": "the selection of any individual employee for discharge must rest on a demonstrably neutral criterion untainted by racial or other impermissible considerations, ensuring that the marketplace of employment reflects the meritocratic principles Congress intended.",
+      "quote_status": "FAKE_QUOTE",
+      "quote_note": "Fabricated quote attributed to real case. McDonnell Douglas is a real case at 411 U.S. 792, but this text does not appear in that opinion."
+    },
+    {
+      "citation": "2025 WL 4419823",
+      "case_name": "Johnson v. Metro Transit Auth.",
+      "year": 2025,
+      "status": "FABRICATED",
+      "quote": "The intersection of Bostock's categorical rule and McDonnell Douglas's individualized burden-shifting analysis creates a reinforcing structure in which the plaintiff's sex is presumptively implicated whenever sexual orientation forms any part of the employer's stated rationale.",
+      "quote_status": "FAKE_CASE",
+      "quote_note": "Entirely fabricated case and quote. No such Westlaw citation exists."
+    }
+  ]
+}
